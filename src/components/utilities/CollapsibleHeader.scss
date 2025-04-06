@@ -1,0 +1,28 @@
+@use 'colors.scss';
+
+.collapsible-panel-wrapper {
+
+  .collapsible-header {
+    cursor: pointer;
+    color: colors.$wordpress-blue;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px;
+    background: #f7f7f7;
+    border-radius: 4px;
+    text-align: center;
+    margin: 0;
+  }
+
+  .arrow {
+    transition: transform 0.2s;
+  }
+
+  .arrow.open {
+    transform: rotate(180deg); // 🔹 Γυρίζει το βέλος όταν είναι ανοιχτό
+  }
+
+}

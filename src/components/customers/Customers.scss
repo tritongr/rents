@@ -1,0 +1,204 @@
+/** 
+* Customers styles
+*/
+
+@use '../utilities/colors.scss';
+
+$wordpress-blue: hsl(199, 100%, 33%);
+$wordpress-blue-light: hsl(199, 100%, 40%);
+
+.customers-wrapper {
+  border: 1px solid#ddd;
+  padding: 10px;
+  border-radius: 4px;
+
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; // για smooth scrolling σε iOS
+
+  table {
+
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    white-space: nowrap;
+
+    th,
+    td {
+      vertical-align: middle;
+      font-size: 1em;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+
+    th {
+      text-align: center;
+    }
+
+    /* Κρύβουμε πεςριττές στήλες στα κινητά */
+    @media (max-width: 600px) {
+
+      // Τηλέφωνο, Αctive
+      th:nth-child(3),
+      td:nth-child(3),
+      th:nth-child(4),
+      td:nth-child(4) {
+        display: none;
+      }
+    }
+  }
+
+  .button-add-new {
+    background: $wordpress-blue;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 10px;
+
+    &:hover {
+      background: $wordpress-blue-light;
+    }
+  }
+
+  // Η γραμμή που είναι active (checkbox on)
+  .active-row {
+    background-color: hsl(120, 100%, 92%); // Απαλό μπλε (WordPress style)
+    // font-weight: bold; // Κάνει το κείμενο πιο εμφανές
+  }
+
+  // Search & filtering
+  // ==================
+  .search-bar {
+    width: calc(100% - 100px); // Να υπάρχει χώρος για το κουμπί
+    padding: 8px;
+    padding-right: 30px; // Αφήνουμε χώρο δεξιά για το κουμπί
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+
+  .button-clear {
+    position: relative;
+    left: -55px;
+    top: 3px;
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #888;
+
+    margin-right: 7px;
+
+    &:hover {
+      color: #333;
+      background-color: hsla(0, 0%, 100%, 0);
+    }
+
+  }
+
+  .active-filter {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+
+    input {
+      cursor: pointer;
+    }
+
+  }
+
+  .sortable-column-header {
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+      color: #0073aa;
+    }
+  }
+
+  .button-expand {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    color: #0073aa;
+    transition: transform 0.2s;
+
+    &:hover {
+      color: #005f87;
+    }
+  }
+
+  #action-buttons {
+
+    text-align: center;
+
+    button {
+      // display: flex;
+      align-items: center;
+      // gap: 5px; // Απόσταση μεταξύ εικονιδίου & κειμένου
+      font-size: 14px;
+      padding: 6px 12px;
+      margin-right: 5px;
+      border: none !important;
+      cursor: pointer;
+      color: white !important;
+      transition: background-color 0.5s ease;
+
+      &:hover {
+        background-color: hsl(59, 95%, 59%);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      // Edit button
+      &.button-edit,
+      &.button-add {
+        background-color: colors.$button-edit-background-color;
+
+        &:hover {
+          background-color: colors.$button-edit-hover-background-color
+        }
+      }
+
+      // Save button
+      &.button-save {
+        background-color: colors.$button-save-background-color;
+
+        &:hover {
+          background-color: colors.$button-save-hover-background-color;
+        }
+      }
+
+      //Cancel button
+      &.button-cancel {
+        background-color: colors.$button-cancel-background-color;
+
+        &:hover {
+          background-color: colors.$button-cancel-hover-background-color;
+        }
+      }
+
+      //Delete button
+      &.button-delete {
+        background-color: colors.$button-delete-background-color;
+        color: white;
+
+        &:hover {
+          background-color: colors.$button-delete-hover-background-color;
+        }
+      }
+    }
+
+  }
+
+}

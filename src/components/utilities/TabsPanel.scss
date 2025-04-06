@@ -1,0 +1,61 @@
+.tabs-container {
+  width: 100%;
+  margin: 5px 0;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 20px;
+  background: #f7f7f7;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600 !important;
+  color: #333 !important;
+  text-align: center;
+  transition: color 0.2s ease-in-out, background 0.2s;
+
+  &:hover {
+    color: #0073aa; // WP primary blue
+  }
+}
+
+.tab.active {
+  border-bottom: 3px solid #0073aa !important;
+  background-color: #fff;
+  color: #0073aa !important;
+  font-weight: bold !important;
+
+  &:hover {
+    border-bottom: 3px solid #0073aa;
+    background-color: hsla(34, 78%, 91%, 0);
+    cursor: default;
+  }
+}
+
+.tab.no-active {
+  border-bottom: 3px solid #dddddd00;
+  background: #fff;
+  color: #000;
+
+  &:hover {
+    border-bottom: 3px solid #E8F0FE;
+    background-color: #E8F0FE;
+  }
+}
+
+.tab-content-container {
+  // padding: 20px;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+.tab-content {
+  font-size: 18px;
+  text-align: center;
+}
