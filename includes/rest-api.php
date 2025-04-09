@@ -4,11 +4,17 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Customers routes
+ * ======
+ * Routes
+ * ======
  */
 
 add_action('rest_api_init', function () {
   $namespace = 'rents/v1';
+
+  /**
+   * Customers routes
+   */
 
   // Get all customers route
   register_rest_route($namespace, '/customers', [
@@ -37,9 +43,56 @@ add_action('rest_api_init', function () {
     'callback' => 'delete_customer',
     'permission_callback' => '__return_true',
   ]);
+
+  /**
+   * Items routes
+   */
+
+  // Get all items route
+  register_rest_route($namespace, '/items', [
+    'methods' => 'GET',
+    'callback' => 'get_items',
+    'permission_callback' => '__return_true',
+  ]);
+
+  // Create a new item route
+  register_rest_route($namespace, '/items', [
+    'methods' => 'POST',
+    'callback' => 'create_item',
+    'permission_callback' => '__return_true',
+  ]);
+
+  // Update a item route
+  register_rest_route($namespace, '/items', [
+    'methods' => 'PUT',
+    'callback' => 'update_item',
+    'permission_callback' => '__return_true',
+  ]);
+
+  // Delete a item route
+  register_rest_route($namespace, '/items', [
+    'methods' => 'DELETE',
+    'callback' => 'delete_item',
+    'permission_callback' => '__return_true',
+  ]);
 });
 
-// GET ALL Customers
+/**
+ * ===================
+ * Callback functions
+ * ===================
+ */
+
+/**
+ * -----------------------------
+ * CUSTOMERS Call back functions
+ * -----------------------------
+ */
+
+/**
+ * GET all customers
+ */
+
 function get_customers()
 {
   global $wpdb;
@@ -50,7 +103,7 @@ function get_customers()
 /**
  * CREATE new customer
  */
-// 
+
 function create_customer(WP_REST_Request $request)
 {
   // Record sent
@@ -63,7 +116,7 @@ function create_customer(WP_REST_Request $request)
   // Τα fields του νέου record που στάλθηκαν
   $name = sanitize_text_field($customer["name"]);
   $notes = sanitize_text_field($customer["notes"]);
-  $phone = sanitize_text_field($customer["phone"]);
+  $is_active = sanitize_text_field($customer["is_active"]);
 
   // Validation των fields
   if (empty($name)) {
@@ -76,15 +129,15 @@ function create_customer(WP_REST_Request $request)
     [
       'name' => $name,
       'notes' => $notes,
-      'phone' => $phone
+      'is_active' => $is_active
     ]
   );
 
   // Επιστροφή του id του νέου record
-  return ['id' => $wpdb->insert_id];
+  // return ['id' => $wpdb->insert_id];
 
   // Επιστροφή του πίνακα
-  // return rest_ensure_response($wpdb->get_results("SELECT * FROM $table  ORDER BY name ASC"));
+  return rest_ensure_response($wpdb->get_results("SELECT * FROM $table  ORDER BY name ASC"));
 }
 
 /**
@@ -104,17 +157,17 @@ function update_customer(WP_REST_Request $request)
   $id = (int) $customer['id'];
   $name = sanitize_text_field($customer["name"]);
   $notes = sanitize_text_field($customer["notes"]);
-  $phone = sanitize_text_field($customer["phone"]);
+  $is_active = sanitize_text_field($customer["is_active"]);
 
   // UPDATE του record
-  // Ο 1ος πίνακας είναι τα data assignments και
-  // ο 2ος είναι το where.
+  // Το 1ο array parameter είναι τα data assignments και
+  // το 2ο είναι το where.
   $wpdb->update(
     $table,
     [
       'name' => $name,
       'notes' => $notes,
-      'phone' => $phone
+      'is_active' => $is_active
     ],
     ['id' => $id], // where
   );
@@ -145,93 +198,126 @@ function delete_customer(WP_REST_Request $request)
   return rest_ensure_response($wpdb->get_results("SELECT * FROM $table  ORDER BY name ASC"));
 }
 
-// Items routes
-// ------------
-add_action('rest_api_init', function () {
-  $namespace = 'rental-sql/v1';
+/**
+ * -----------------------------
+ * ITEMS Call back functions
+ * -----------------------------
+ */
 
-  // Get all items
-  register_rest_route($namespace, '/items', [
-    'methods' => 'GET',
-    'callback' => 'get_items',
-    'permission_callback' => '__return_true',
-  ]);
-
-  // Create a new item
-  register_rest_route($namespace, '/items', [
-    'methods' => 'POST',
-    'callback' => 'create_item',
-    'permission_callback' => '__return_true',
-  ]);
-
-  // Update an item
-  register_rest_route($namespace, '/items/(?P<id>\d+)', [
-    'methods' => 'PUT',
-    'callback' => 'update_item',
-    'permission_callback' => '__return_true',
-  ]);
-
-  // Delete an item
-  register_rest_route($namespace, '/items/(?P<id>\d+)', [
-    'methods' => 'DELETE',
-    'callback' => 'delete_item',
-    'permission_callback' => '__return_true',
-  ]);
-});
+/**
+ * GET all items
+ */
 
 function get_items()
 {
   global $wpdb;
   $table = $wpdb->prefix . 'rent_items';
-  return $wpdb->get_results("SELECT * FROM $table");
+  return $wpdb->get_results("SELECT * FROM $table ORDER BY name ASC");
 }
+
+/**
+ * CREATE new item
+ */
 
 function create_item(WP_REST_Request $request)
 {
+  // Record sent
+  $item = $request->get_json_params();
+
+  // DB handle
   global $wpdb;
   $table = $wpdb->prefix . 'rent_items';
-  $description = sanitize_text_field($request->get_param('item_description'));
 
-  if (empty($description)) {
-    return new WP_Error('missing_description', 'Η περιγραφή είναι υποχρεωτική', ['status' => 400]);
+  // Τα fields του νέου record που στάλθηκαν
+  $name = sanitize_text_field($item["name"]);
+  $description = sanitize_text_field($item["description"]);
+  $is_available = sanitize_text_field($item["is_available"]);
+
+  // Validation των fields
+  if (empty($name)) {
+    return new WP_Error('missing_name', 'H ονομασία είναι υποχρεωτική', ['status' => 400]);
   }
 
-  $wpdb->insert($table, ['item_description' => $description]);
-
-  return ['id' => $wpdb->insert_id, 'item_description' => $description];
-}
-
-function update_item(WP_REST_Request $request)
-{
-  global $wpdb;
-  $items_table = $wpdb->prefix . 'items';
-
-  $item_ID = (int) $request['id'];
-  $item_description = sanitize_text_field($request->get_param('item_description'));
-  $stock = (int) $request->get_param('stock');
-
-  if ($stock < 0) {
-    return new WP_Error('invalid_stock', 'Το stock δεν μπορεί να είναι αρνητικό', ['status' => 400]);
-  }
-
-  $wpdb->update(
-    $items_table,
-    ['item_description' => $item_description, 'stock' => $stock],
-    ['item_ID' => $item_ID]
+  // Insert του νέου record
+  $wpdb->insert(
+    $table,
+    [
+      'name' => $name,
+      'description' => $description,
+      'is_available' => $is_available
+    ]
   );
 
-  return ['item_ID' => $item_ID, 'item_description' => $item_description, 'stock' => $stock];
+  // Inserted id check
+  $instered_id = $wpdb->insert_id;
+  if ($instered_id === 0):
+    return new WP_Error('db_insert_failed', 'Αποτυχία εισαγωγής νέας εγγραφής', ['status' => 600]);
+  endif;
+
+  // Επιστροφή του πίνακα
+  return rest_ensure_response($wpdb->get_results("SELECT * FROM $table  ORDER BY name ASC"));
+
+
+  // Επιστροφή του id του νέου record
+  // return ['id' => $wpdb->insert_id];
 }
 
-function delete_item(WP_REST_Request $request)
+/**
+ * UPDATE item
+ */
+function update_item(WP_REST_Request $request)
 {
+
+  // Record sent
+  $item = $request->get_json_params();
+
+  // DB handle
   global $wpdb;
   $table = $wpdb->prefix . 'rent_items';
-  $id = (int) $request['id'];
 
-  $wpdb->delete($table, ['item_ID' => $id]);
+  // Τα fields που στάλθηκαν
+  $id = (int) $item['id'];
+  $name = sanitize_text_field($item["name"]);
+  $description = sanitize_text_field($item["description"]);
+  $is_available = sanitize_text_field($item["is_available"]);
 
-  return ['message' => 'Item deleted'];
+  // UPDATE του record
+  // Το 1ο array parameter είναι τα data assignments και
+  // το 2ο είναι το where.
+  $wpdb->update(
+    $table,
+    [
+      'name' => $name,
+      'description' => $description,
+      'is_available' => $is_available
+    ],
+    ['id' => $id], // where
+  );
+
+  // Επιστροφή του πίνακα
+  return rest_ensure_response($wpdb->get_results("SELECT * FROM $table  ORDER BY name ASC"));
+}
+
+/**
+ * DELETE item
+ */
+function delete_item(WP_REST_Request $request)
+{
+  // Το record που στάλθηκε
+  $item = $request->get_json_params();
+
+  // Handle DB
+  global $wpdb;
+  $table = $wpdb->prefix . 'rent_items';
+
+  // To id του record που στάλθηκε
+  $id = $item['id'];
+
+  // Διαγραφή του record
+  $wpdb->delete($table, ['id' => $id]);
+
+  // Επιστροφή του πίνακα
+  return rest_ensure_response($wpdb->get_results("SELECT * FROM $table  ORDER BY name ASC"));
 }
 
 // Rents

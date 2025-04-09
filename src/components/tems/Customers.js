@@ -1,7 +1,7 @@
 /**
  * =============================================
  * Βασικό Customers component με δυνατότητα CRUD
- * Καλεί το CustomerModal για Create/Update
+ * Καλεί το CustomerModal για Crete/Update
  * =============================================
  */
 
@@ -16,7 +16,7 @@ import Confirm from "../utilities/Confirm"
 import CollapsibleHeader from "../utilities/CollapsibleHeader"          // Toggles a panel (show/hide)
 import { CustomerModal } from "./CustomerModal"                         // Modal form
 
-function Customers({ customers, setCustomers, nullCustomer, API }) {
+function Customers({ customers, setCustomers, nullCustomer, customersAPI }) {
 
   /**
    * States
@@ -61,8 +61,8 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
     // Axios parameters
     const axiosVars = {
       method: "POST",
-      url: API.URL + "customers",
-      headers: { "X-WP-Nonce": API.NONCE },
+      url: customersAPI.URL,
+      headers: { "X-WP-Nonce": customersAPI.NONCE },
       data: editingCustomer
     }
 
@@ -70,27 +70,19 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
     // Το response.data περιέχει το id του νέου record π.χ. {id: 139}
     function handleSuccess(response) {
 
-      setCustomers(response.data)
+      const newId = response.data.id
+      setCustomers(prevCustomers => ([...prevCustomers, { ...editingCustomer, id: newId }]))
+
       setEditingCustomer(nullCustomer)
       setIsModalOpen(false)
+      toast.success('Ο νέος πελάτης προστέθηκε!') // toast message
 
-      toast.success('Ο νέος πελάτης προστέθηκε!')
-
-      // const newId = response.data.id
-
-      // if (newId) {
-      //   setCustomers(prevCustomers => ([...prevCustomers, { ...editingCustomer, id: newId }]))
-      //   sortDefault()
-      // } else {
-      //   toast.error("Αποτυχία προσθήκης!")
-      // }
-      // // Sort by name
-      // sortDefault()
+      // Sort by name
+      sortDefault()
     }
 
     // Fail save new record
     function handleError(error) {
-      toast.error("Αποτυχία δημιουργίας!")
       console.error("Error saving new editingCustomer: ", error)
     }
 
@@ -118,8 +110,8 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
     // Axios parameters
     const axiosVars = {
       method: "PUT",
-      url: API.URL + "customers",
-      headers: { "X-WP-Nonce": API.NONCE },
+      url: customersAPI.URL,
+      headers: { "X-WP-Nonce": customersAPI.NONCE },
       data: editingCustomer
     }
 
@@ -127,22 +119,19 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
     // Το response.data περιέχει ολόκληρο τον πίνακα
     function handleSuccess(response) {
 
-      setCustomers(response.data)
+      // Το τοπικό customers ενημερώνεται από το editingCustomer
+      setCustomers(prevCustomers => (
+        prevCustomers.map(customer => (customer.id === editingCustomer.id ? editingCustomer : customer))
+      ))
+
       setEditingCustomer(nullCustomer)
       setIsModalOpen(false)
 
+      // toast message
       toast.info('Ο πελάτης ενημερώθηκε!')
 
-      // // Το τοπικό customers ενημερώνεται από το editingCustomer
-      // setCustomers(prevCustomers => (
-      //   prevCustomers.map(customer => (customer.id === editingCustomer.id ? editingCustomer : customer))
-      // ))
-
-      // // toast message
-      // toast.info('Ο πελάτης ενημερώθηκε!')
-
-      // // Sort by name
-      // sortDefault()
+      // Sort by name
+      sortDefault()
 
     }
 
@@ -174,8 +163,8 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
     // Axios parameters
     const axiosVars = {
       method: "DELETE",
-      url: API.URL + "customers",
-      headers: { "X-WP-Nonce": API.NONCE },
+      url: customersAPI.URL,
+      headers: { "X-WP-Nonce": customersAPI.NONCE },
       data: editingCustomer
     };
 
@@ -203,7 +192,7 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
 
   // Φιλτράρισμα βάσει searchText και Active Filter
   const filteredCustomers = customers
-    .filter(customer => !showActiveOnly || customer.is_active == 1) // is_active filter
+    .filter(customer => !showActiveOnly || customer.active != 0) // active customers
     .filter(customer => customer.name.toLowerCase().includes(searchText.toLowerCase())) // name search
 
   // Sorting Λειτουργία
@@ -211,8 +200,8 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
     if (sortColumn === "name") {
       return sortDirection === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
     }
-    if (sortColumn === "is_active") {
-      return sortDirection === "asc" ? b.is_active - a.is_active : a.is_active - b.is_active
+    if (sortColumn === "active") {
+      return sortDirection === "asc" ? b.active - a.active : a.active - b.active
     }
 
     return 0
@@ -223,9 +212,14 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
     if (sortColumn === column) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      setSortColumn(column);
-      setSortDirection("asc");
+      sortDefault()
     }
+  }
+
+  // Εναλλαγή κατεύθυνσης sorting
+  function sortDefault() {
+    setSortColumn("name");
+    setSortDirection("asc");
   }
 
   /**
@@ -246,7 +240,7 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
       {/* Add New Customer Button */}
       {isCollapsiblePanelOpen && (
         <button
-          title="Νέος πελάτης"
+          title="Νέα γραμμή"
           onClick={onAddClick}
           className="button-add-new"
         >
@@ -293,8 +287,6 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
       {
         isCollapsiblePanelOpen && (
           <table className="">
-
-            {/* Table header */}
             <thead className="">
               <tr>
                 {/* Sortable column name */}
@@ -305,32 +297,33 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
                   Όνομα {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
                 </th>
                 <th className="">Σχόλια</th>
+                <th className="">Τηλέφωνο</th>
                 <th
                   className="sortable-column-header"
-                  onClick={() => handleSortToggle("is_active")}
+                  onClick={() => handleSortToggle("active")}
                 >
-                  Active {sortColumn === "is_active" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  Active {sortColumn === "active" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
                 </th>
                 <th className="">Actions</th>
               </tr>
             </thead>
-
-            {/* Table data */}
             <tbody>
               {
                 // Filtered + Sorted customers
                 sortedCustomers.map(customer => (
                   <tr
                     key={customer.id}
-                    className={customer.is_active != 0 ? "active-row" : ""}
+                    className={customer.active != 0 ? "active-row" : ""}
                   >
                     {/* Name */}
                     <td>{customer.id} - {customer.name}</td>
                     {/* Notes */}
                     <td>{customer.notes}</td>
+                    {/* Phone */}
+                    <td>{customer.phone}</td>
                     {/* Active */}
                     <td style={{ textAlign: "center" }} >
-                      {customer.is_active != 0 ? "✅" : "❌"}
+                      {customer.active != 0 ? "✅" : "❌"}
                     </td>
                     {/* Action buttons */}
                     <td>
@@ -381,7 +374,7 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
 
       {/* το Confirmation on delete */}
       <Confirm
-        message={`Να διαγραφεί ο πελάτης ${editingCustomer.id} ;`}
+        message={`Να διαγραφεί ο πελάτης ${editingCustomer.name} ;`}
         onConfirmYes={onDelete}
         isShowing={isConfirmShowing}
         setIsShowing={setIsConfirmShowing}

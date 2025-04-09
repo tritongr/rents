@@ -1,5 +1,5 @@
 /** 
-* Items styles
+* Customers styles
 */
 
 @use '../utilities/colors.scss';
@@ -7,7 +7,7 @@
 $wordpress-blue: hsl(199, 100%, 33%);
 $wordpress-blue-light: hsl(199, 100%, 40%);
 
-.items-wrapper {
+.customers-wrapper {
   border: 1px solid#ddd;
   padding: 10px;
   border-radius: 4px;

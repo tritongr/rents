@@ -18,25 +18,16 @@ function Rents() {
 
 function Main() {
 
-  /**
-   * Customers
-   */
-
-  // Null row/record *** to be modified
-  const nullCustomer = { id: 0, name: "", notes: "", phone: "", active: false }
+  const nullCustomer = { id: 0, name: "", notes: "", is_active: false }
   const [customers, setCustomers] = useState([])
 
-  // Αρχικά δεδομένα *** to be modified
-  // const [customers, setCustomers] = useState([
-  //   { id: 1, name: "John Doe", notes: "fsdfsad", phone: "6944444444", active: false },
-  //   { id: 2, name: "Jane Smith", notes: "gdsfgdgdgsd", phone: "6955555555", active: true },
-  //   { id: 3, name: "Κώστας Παπαδόπουλος", notes: "fggbvcxvbxcb", phone: "6966666666", active: false },
-  //   { id: 4, name: "Νίκος Αδαμίδης", notes: "sdfsjfjs", phone: "6977777777", active: true },
-  // ]);
+  const nullItem = { id: 0, name: "", description: "", is_available: true }
+  const [items, setItems] = useState([])
+
 
   // Global API parameters
-  const customersAPI = {
-    URL: rentsGlobal.root_url + "/wp-json/rents/v1/customers",
+  const API = {
+    URL: rentsGlobal.root_url + "/wp-json/rents/v1/",
     NONCE: rentsGlobal.nonce
   }
 
@@ -45,8 +36,8 @@ function Main() {
   function loadAllCustomers() {
     const axiosVars = {
       method: "GET",
-      url: customersAPI.URL,
-      headers: { "X-WP-Nonce": customersAPI.NONCE }
+      url: API.URL + "customers",
+      headers: { "X-WP-Nonce": API.NONCE }
     }
     // Handle success
     function handleSuccess(response) {
@@ -56,6 +47,28 @@ function Main() {
     //Handle error
     function handleError(error) {
       console.error("Error fetching all customers: ", error)
+    }
+    axios(axiosVars)
+      .then(handleSuccess)
+      .catch(handleError)
+  }
+
+  // Load all items 
+  useEffect(loadAllItems, [])
+  function loadAllItems() {
+    const axiosVars = {
+      method: "GET",
+      url: API.URL + "items",
+      headers: { "X-WP-Nonce": API.NONCE }
+    }
+    // Handle success
+    function handleSuccess(response) {
+      // Ενημέρωση του state items
+      setItems(response.data)
+    }
+    //Handle error
+    function handleError(error) {
+      console.error("Error fetching all items: ", error)
     }
     axios(axiosVars)
       .then(handleSuccess)
@@ -79,21 +92,26 @@ function Main() {
               customers={customers}
               setCustomers={setCustomers}
               nullCustomer={nullCustomer}
-              customersAPI={customersAPI}
+              API={API}
             />
           },
           {
-            name: "items",
-            title: "Εξοπλισμος",
-            content: <Items />
+            name: "Items",
+            title: "Εξοπλισμός",
+            content: <Items
+              items={items}
+              setItems={setItems}
+              nullItem={nullItem}
+              API={API}
+            />
           },
-          {
-            name: "rents",
-            title: "Ενοικιάσεις",
-            content: <Rents />
+          // {
+          //   name: "rents",
+          //   title: "Ενοικιάσεις",
+          //   content: <Rents />
 
-            // content: <Rents customers={customers} items={items} itemCategories={itemCategories} rentStatus={rentStatus} rents={rents} setRents={setRents} />
-          },
+          //   // content: <Rents customers={customers} items={items} itemCategories={itemCategories} rentStatus={rentStatus} rents={rents} setRents={setRents} />
+          // },
         ]}
       />
 
