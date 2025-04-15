@@ -1,0 +1,223 @@
+/**
+ * =========================================
+ * Edit & Add Modal Form for Rents Table
+ * =========================================
+ */
+
+import "./RentModal.scss"
+
+import React, { useState, useEffect, useRef } from 'react'
+import Select from 'react-select'
+
+export function RentModal({
+  isModalOpen,
+  setIsModalOpen,
+  editingRent,
+  setEditingRent,
+  customers,
+  items,
+  selectedItems,
+  setSelectedItems,
+  selectedCustomer,
+  setSelectedCustomer,
+  onSaveEdit,
+  onSaveNew,
+  isNewRent
+}) {
+
+  /**
+   * States
+   */
+
+  // Focus στο 1ο πεδίο
+  const refControl = useRef(null)
+
+  useEffect(() => {
+
+    // Ενημέρωση των selectedCustomer και selectedItems
+    if (!isNewRent) {
+      const selItemsForDropDown = editingRent.items.map(iId => {
+        const item = items.find(i => i.id == iId)
+        return { label: item.name, value: parseInt(item.id) }
+      })
+      setSelectedItems(selItemsForDropDown)
+
+      const customer = customers.find(c => c.id == editingRent.customer_id)
+      setSelectedCustomer({ label: customer.name, value: parseInt(customer.id) })
+    } else {
+      setSelectedCustomer(null)
+      setSelectedItems([])
+    }
+
+    if (refControl.current) {
+      refControl.current.focus()
+    }
+  }, [])
+
+  /**
+   * Functions
+   */
+
+  if (!isModalOpen) {
+    return null
+  }
+  const header = isNewRent ? "Νέα Ενοικίαση" : "Επεξεργασία Ενοικίασης"
+  const headerClass = isNewRent ? "new-record-header" : "edit-record-header"
+
+  // Dates & Text input changes
+  function handleInputChange(e) {
+
+    const { name, value, type, checked } = e.target
+    setEditingRent(r => ({ ...r, [name]: value }))
+  }
+
+  // Styles για Customers dropdown
+  const selectCustomerStyle = {
+    control: (styles) => ({ ...styles, textAlign: "left", backgroundColor: "#FFFFE0" }), // the div control wrapper
+    option: (styles, state) => {
+      return ({
+        ...styles,
+        textAlign: "left",
+        backgroundColor: !state.isFocused && !state.isSelected ? "#FFFFE0" : styles.backgroundColor
+      })
+    }, // η λίστα με τα options
+    multiValue: (styles, state) => ({ ...styles, }), // η λίστα με τα options
+    multiValueLabel: (styles, state) => ({ ...styles, textAlign: "left", }), // η λίστα με τα options
+    multiValueRemove: (styles, state) => ({ ...styles, cursor: "pointer", }), // το x που το διαγράφει
+  }
+
+  // Styles για Items dropdown
+  const selectItemsStyle = {
+    control: (styles) => ({ ...styles, textAlign: "left", backgroundColor: "#D7FEC8" }), // the div control wrapper
+    option: (styles, state) => {
+      return ({
+        ...styles,
+        textAlign: "left",
+        backgroundColor: !state.isFocused && !state.isSelected ? "#D7FEC8" : styles.backgroundColor
+      })
+    }, // η λίστα με τα options
+    multiValue: (styles, state) => ({ ...styles, backgroundColor: "#8BE78B", color: "black" }), // η λίστα με τα options
+    multiValueLabel: (styles, state) => ({ ...styles, textAlign: "left", color: "black" }), // η λίστα με τα options
+    multiValueRemove: (styles, state) => ({ ...styles, cursor: "pointer", }), // το x που το διαγράφει
+  }
+
+  return (
+    <div className='modal-wraper modal-overlay'>
+
+      {/* Content wraper */}
+      <div className="modal-content">
+
+        {/* Header */}
+        <div className="modal-header">
+          <p className={headerClass}>{header}</p>
+        </div>
+        {/* Fields */}
+        <div>
+
+          {/* Customer single select */}
+          <Select
+            placeholder="Επιλέξτε πελάτη..."
+            options={customers.map(c => ({ label: c.name, value: c.id }))}
+            value={selectedCustomer}
+            onChange={selection => setSelectedCustomer(selection)}
+            styles={selectCustomerStyle}
+          />
+
+          {/* Items multi select */}
+          <Select
+            placeholder="Επιλέξτε εξοπλισμό..."
+            options={items.map(i => ({ label: i.name, value: parseInt(i.id) }))}
+            value={selectedItems}
+            onChange={selection => setSelectedItems(selection)}
+            isMulti
+            styles={selectItemsStyle}
+          />
+
+          {/* Notes */}
+          <textarea
+            value={editingRent.notes}
+            onChange={(e) => setEditingRent({ ...editingRent, notes: e.target.value })}
+            placeholder="Σχόλια"
+          />
+
+          <div style={{ display: "flex" }}>
+
+            {/* Έναρξη */}
+            <div style={{ flex: "1", margin: 0, maxWidth: "50%" }}>
+              <span style={{ fontSize: "small", color: "#0073a8" }}>Έναρξη</span><br />
+              < input
+                type="date"
+                name="start_date"
+                value={editingRent.start_date}
+                onChange={handleInputChange}
+
+              />
+            </div>
+
+            {/* Λήξη */}
+            <div style={{ flex: "1", margin: 0, maxWidth: "50%" }}>
+              <span style={{ fontSize: "small", color: "#0073a8" }}>Λήξη</span><br />
+              <input
+                type="date"
+                name="end_date"
+                value={editingRent.end_date}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+
+
+          <div style={{ display: "flex" }}>
+            {/* Επιστροφή */}
+            <div style={{ flex: "1", margin: 0, maxWidth: "50%" }}>
+              <span style={{ fontSize: "small", color: "#0073a8" }}>Επεστράφη</span><br />
+              <input
+                type="date"
+                name="ret_date"
+                value={editingRent.ret_date}
+                onChange={handleInputChange}
+              />
+            </div>
+
+            {/* Πληρωμή */}
+            <div style={{ flex: "1", margin: 0, maxWidth: "50%" }}>
+              <span style={{ fontSize: "small", color: "#0073a8" }}>Εξοφλήθη</span><br />
+              <input
+                type="date"
+                name="paid_date"
+                value={editingRent.paid_date}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+
+        </div>
+
+        {/* Buttons */}
+        <div className="modal-actions">
+
+          {/* Save */}
+          <button
+            title={isNewRent ? "Προσθήκη" : "Ενημέρωση"}
+            className="button-save"
+            onClick={isNewRent ? onSaveNew : onSaveEdit}
+          >
+            <span class="dashicons dashicons-saved"></span>
+          </button>
+
+          {/* Cancel */}
+          <button
+            title="Ακύρωση"
+            className="button-cancel"
+            onClick={() => { setSelectedItems([]); setIsModalOpen(false) }}
+          >
+            <span class="dashicons dashicons-undo"></span>
+          </button>
+
+        </div>
+
+      </div>
+
+    </div >
+  )
+}

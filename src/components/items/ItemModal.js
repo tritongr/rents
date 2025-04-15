@@ -74,7 +74,7 @@ export function ItemModal({
 
           {/* Save */}
           <button
-            title="Ενημέρωση"
+            title={isNewItem ? "Προσθήκη" : "Ενημέρωση"}
             className="button-save"
             onClick={isNewItem ? onSaveNew : onSaveEdit}
           >

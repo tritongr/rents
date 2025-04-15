@@ -74,7 +74,7 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
       setEditingCustomer(nullCustomer)
       setIsModalOpen(false)
 
-      toast.success('Ο νέος πελάτης προστέθηκε!')
+      toast.success('Ο πελάτης προστέθηκε!')
 
       // const newId = response.data.id
 

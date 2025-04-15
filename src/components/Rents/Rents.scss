@@ -7,7 +7,7 @@
 $wordpress-blue: hsl(199, 100%, 33%);
 $wordpress-blue-light: hsl(199, 100%, 40%);
 
-.customers-wrapper {
+.rents-wrapper {
   border: 1px solid#ddd;
   padding: 10px;
   border-radius: 4px;
@@ -29,6 +29,10 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
       padding: 0.75rem;
       border: 1px solid #ccc;
       text-align: left;
+
+      &.td-center {
+        text-align: center;
+      }
     }
 
     th {

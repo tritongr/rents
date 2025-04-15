@@ -8,13 +8,7 @@ import { ToastContainer, Slide } from 'react-toastify'
 import { TabsPanel } from "./utilities/TabsPanel"
 import Customers from "./customers/Customers"
 import Items from "./items/Items"
-
-
-function Rents() {
-  return (
-    <h2>Rents Content</h2>
-  )
-}
+import Rents from "./rents/Rents"
 
 function Main() {
 
@@ -24,8 +18,10 @@ function Main() {
   const nullItem = { id: 0, name: "", description: "", is_available: true }
   const [items, setItems] = useState([])
 
+  const nullRent = { id: 0, customer_id: null, customer_name: null, rented_items: [], start_date: "", end_date: "", ret_date: "", paid_date: "", notes: "" }
+  const [rents, setRents] = useState([])
 
-  // Global API parameters
+  // Global API parameter
   const API = {
     URL: rentsGlobal.root_url + "/wp-json/rents/v1/",
     NONCE: rentsGlobal.nonce
@@ -75,6 +71,31 @@ function Main() {
       .catch(handleError)
   }
 
+  // Load all rents 
+  useEffect(loadAllRents, [])
+  function loadAllRents() {
+    const axiosVars = {
+      method: "GET",
+      url: API.URL + "rents",
+      headers: { "X-WP-Nonce": API.NONCE }
+    }
+
+    // Handle success
+    function handleSuccess(response) {
+      // Ενημέρωση του state rents
+      setRents(response.data)
+      console.log("rents: ", rents.length)
+    }
+
+    //Handle error
+    function handleError(error) {
+      console.error("Error fetching all rents: ", error)
+    }
+    axios(axiosVars)
+      .then(handleSuccess)
+      .catch(handleError)
+  }
+
   return (
     <div className="app-wrapper">
       {/* App title */}
@@ -85,6 +106,18 @@ function Main() {
       {/* Tabs */}
       <TabsPanel
         tabs={[
+          {
+            name: "rents",
+            title: "Ενοικιάσεις",
+            content: <Rents
+              rents={rents}
+              setRents={setRents}
+              nullRent={nullRent}
+              customers={customers}
+              items={items}
+              API={API}
+            />
+          },
           {
             name: "Customers",
             title: "Πελάτες",
@@ -105,13 +138,6 @@ function Main() {
               API={API}
             />
           },
-          // {
-          //   name: "rents",
-          //   title: "Ενοικιάσεις",
-          //   content: <Rents />
-
-          //   // content: <Rents customers={customers} items={items} itemCategories={itemCategories} rentStatus={rentStatus} rents={rents} setRents={setRents} />
-          // },
         ]}
       />
 
@@ -135,3 +161,5 @@ function Main() {
 
 const root = createRoot(document.getElementById('rents-app'));
 root.render(<Main />);
+
+export default Main

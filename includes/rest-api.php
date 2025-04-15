@@ -75,6 +75,70 @@ add_action('rest_api_init', function () {
     'callback' => 'delete_item',
     'permission_callback' => '__return_true',
   ]);
+
+  /**
+   * Rents routes
+   */
+
+  // Get all rents route
+  register_rest_route($namespace, '/rents', [
+    'methods' => 'GET',
+    'callback' => 'get_all_rents',
+    'permission_callback' => '__return_true',
+  ]);
+
+  // Create a new item route
+  register_rest_route($namespace, '/rents', [
+    'methods' => 'POST',
+    'callback' => 'create_rent',
+    'permission_callback' => '__return_true',
+  ]);
+
+  // Update a item route
+  register_rest_route($namespace, '/rents', [
+    'methods' => 'PUT',
+    'callback' => 'update_rent',
+    'permission_callback' => '__return_true',
+  ]);
+
+  // Delete a item route
+  register_rest_route($namespace, '/rents', [
+    'methods' => 'DELETE',
+    'callback' => 'delete_rent',
+    'permission_callback' => '__return_true',
+  ]);
+
+  /**
+   * Rented items routes
+   */
+
+  // Get all rents route
+  register_rest_route($namespace, '/rented_items', [
+    'methods' => 'GET',
+    'callback' => 'get_rented_items',
+    'permission_callback' => '__return_true',
+  ]);
+
+  // Create a new item route
+  register_rest_route($namespace, '/rented_items', [
+    'methods' => 'POST',
+    'callback' => 'create_rented_items',
+    'permission_callback' => '__return_true',
+  ]);
+
+  // Update a item route
+  register_rest_route($namespace, '/rented_items', [
+    'methods' => 'PUT',
+    'callback' => 'update_rented_items',
+    'permission_callback' => '__return_true',
+  ]);
+
+  // Delete a item route
+  register_rest_route($namespace, '/rented_items', [
+    'methods' => 'DELETE',
+    'callback' => 'delete_rented_items',
+    'permission_callback' => '__return_true',
+  ]);
 });
 
 /**
@@ -320,109 +384,245 @@ function delete_item(WP_REST_Request $request)
   return rest_ensure_response($wpdb->get_results("SELECT * FROM $table  ORDER BY name ASC"));
 }
 
-// Rents
-// -----
-add_action('rest_api_init', function () {
-  $namespace = 'rental-sql/v1';
+/**
+ * -----------------------------
+ * RENTS Call back functions
+ * -----------------------------
+ */
 
-  // Get all rents
-  register_rest_route($namespace, '/rents', [
-    'methods' => 'GET',
-    'callback' => 'get_rents',
-    'permission_callback' => '__return_true',
-  ]);
+/**
+ * GET all rents
+ */
 
-  // Create a new rent
-  register_rest_route($namespace, '/rents', [
-    'methods' => 'POST',
-    'callback' => 'create_rent',
-    'permission_callback' => '__return_true',
-  ]);
+function get_all_rents()
+{
+  global $wpdb;
 
-  // Update a rent (e.g., mark as returned)
-  register_rest_route($namespace, '/rents/(?P<id>\d+)', [
-    'methods' => 'PUT',
-    'callback' => 'update_rent',
-    'permission_callback' => '__return_true',
-  ]);
+  // Κάνουμε JOIN με customers για να πάρουμε το όνομα του πελάτη
+  $rents = $wpdb->get_results("
+    SELECT 
+      r.*,
+      c.name AS customer_name
+    FROM {$wpdb->prefix}rent_rents r
+    LEFT JOIN {$wpdb->prefix}rent_customers c ON r.customer_id = c.id
+    ORDER BY r.start_date DESC
+  ", ARRAY_A);
 
-  // Delete a rent
-  register_rest_route($namespace, '/rents/(?P<id>\d+)', [
-    'methods' => 'DELETE',
-    'callback' => 'delete_rent',
-    'permission_callback' => '__return_true',
-  ]);
-});
+  // Για κάθε rent, παίρνουμε τα related items από τον πίνακα rented_items
+  foreach ($rents as &$rent) {
+    $rent_id = $rent['id'];
+    $items = $wpdb->get_col($wpdb->prepare(
+      "SELECT item_id FROM {$wpdb->prefix}rent_rented_items WHERE rent_id = %d",
+      $rent_id
+    ));
+    $rent['items'] = $items;
+  }
 
+  return new WP_REST_Response($rents, 200);
+}
+
+// backup
 function get_rents()
 {
   global $wpdb;
-  $table = $wpdb->prefix . 'rent_rents';
-  return $wpdb->get_results("SELECT * FROM $table");
+
+  $results = $wpdb->get_results("
+      SELECT mal_rent_rents.*, mal_rent_customers.name AS customer_name, GROUP_CONCAT(mal_rent_items.id) AS items
+      FROM mal_rent_rents
+      JOIN mal_rent_customers ON mal_rent_rents.customer_id = mal_rent_customers.id
+      LEFT JOIN mal_rent_rented_items ON mal_rent_rents.id = mal_rent_rented_items.rent_id
+      LEFT JOIN mal_rent_items ON mal_rent_rented_items.item_id = mal_rent_items.id
+      GROUP BY mal_rent_rents.id
+      ORDER BY customer_name ASC
+    ");
+
+  if ($results) {
+    // wp_send_json_success($results);
+    return rest_ensure_response($results);
+  } else {
+    return ('No rents found.');
+  }
 }
 
-function create_rent(WP_REST_Request $request)
+/**
+ * Create rent
+ */
+function create_rent($request)
 {
   global $wpdb;
-  $rents_table = $wpdb->prefix . 'rent_rents';
-  $items_table = $wpdb->prefix . 'rent_items';
+  $rent = $request->get_json_params();
 
-  $customer_ID = (int) $request->get_param('customer_ID');
-  $item_ID = (int) $request->get_param('item_ID');
-  $start_date = sanitize_text_field($request->get_param('start_date'));
-
-  if (!$customer_ID || !$item_ID || empty($start_date)) {
-    return new WP_Error('missing_data', 'Όλα τα πεδία είναι υποχρεωτικά', ['status' => 400]);
-  }
-
-  // Ελέγχουμε αν υπάρχει διαθέσιμο stock
-  $stock = $wpdb->get_var($wpdb->prepare("SELECT stock FROM $items_table WHERE item_ID = %d", $item_ID));
-  if ($stock <= 0) {
-    return new WP_Error('no_stock', 'Το αντικείμενο δεν είναι διαθέσιμο', ['status' => 400]);
-  }
-
-  // Δημιουργία ενοικίασης
-  $wpdb->insert($rents_table, [
-    'customer_ID' => $customer_ID,
-    'item_ID' => $item_ID,
-    'start_date' => $start_date,
-    'returned_date' => null,
+  $wpdb->insert('mal_rent_rents', [
+    'customer_id' => $rent['customer_id'],
+    'start_date' => $rent['start_date'],
+    'end_date' => $rent['end_date'],
+    'ret_date' => $rent['ret_date'],
+    'paid_date' => $rent['paid_date'],
+    'notes' => $rent['notes'],
   ]);
 
-  // Μείωση του stock
-  $wpdb->query($wpdb->prepare("UPDATE $items_table SET stock = stock - 1 WHERE item_ID = %d", $item_ID));
+  $rent_id = $wpdb->insert_id;
 
-  return ['id' => $wpdb->insert_id];
+  if (!empty($rent['rented_items']) && is_array($rent['rented_items'])) {
+    foreach ($rent['rented_items'] as $item_id) {
+      $wpdb->insert('mal_rent_rented_items', [
+        'rent_id' => $rent_id,
+        'item_id' => $item_id
+      ]);
+    }
+  }
+
+  return get_all_rents();
+  // return new WP_REST_Response(['rent_id' => $rent_id], 201);
+  // $results = $wpdb->get_results(allRentsSql());
+
+  // if ($results) {
+  //   return rest_ensure_response($results);
+  // } else {
+  //   return ([]);
+  // }
 }
 
-function update_rent(WP_REST_Request $request)
+/**
+ * Update rent
+ */
+function update_rent($request)
 {
+  $rent = $request->get_json_params();
+  $id = $rent['id'];
+
   global $wpdb;
-  $rents_table = $wpdb->prefix . 'rent_rents';
-  $items_table = $wpdb->prefix . 'rent_items';
 
-  $id = (int) $request['id'];
-  $returned_date = sanitize_text_field($request->get_param('returned_date'));
+  $tableRents = $wpdb->prefix . 'rent_rents';
+  $tableRentedItems = $wpdb->prefix . 'rent_rented_items';
 
-  // Παίρνουμε το item_ID της ενοικίασης
-  $item_ID = $wpdb->get_var($wpdb->prepare("SELECT item_ID FROM $rents_table WHERE rent_ID = %d", $id));
+  $wpdb->update($tableRents, [
+    'customer_id' => $rent['customer_id'],
+    'start_date' => $rent['start_date'],
+    'end_date' => $rent['end_date'],
+    'ret_date' => $rent['ret_date'],
+    'paid_date' => $rent['paid_date'],
+    'notes' => $rent['notes'],
+  ], ['id' => $id]);
 
-  // Ενημέρωση της ενοικίασης
-  $wpdb->update($rents_table, ['returned_date' => $returned_date], ['rent_ID' => $id]);
+  // Διαγραφή των rented_items του rent
+  $wpdb->delete($tableRentedItems, ['rent_id' => $id]);
 
-  // Αύξηση του stock
-  $wpdb->query($wpdb->prepare("UPDATE $items_table SET stock = stock + 1 WHERE item_ID = %d", $item_ID));
+  // Προσθήκη των νέων rented_items
+  if (!empty($rent['rented_items']) && is_array($rent['rented_items'])) {
+    foreach ($rent['rented_items'] as $item_id) {
+      $wpdb->insert($tableRentedItems, [
+        'rent_id' => $id,
+        'item_id' => $item_id
+      ]);
+    }
+  }
 
-  return ['id' => $id, 'returned_date' => $returned_date];
+  return get_all_rents();
+  // return new WP_REST_Response(['updated' => true], 200);
 }
 
-function delete_rent(WP_REST_Request $request)
+/**
+ * Delete rent
+ */
+
+function delete_rent($request)
 {
+  $rent = $request->get_json_params();
+  $id = $rent['id'];
+
   global $wpdb;
-  $table = $wpdb->prefix . 'rent_rents';
-  $id = (int) $request['id'];
+  $tableRents = $wpdb->prefix . 'rent_rents';
+  $tableRentedItems = $wpdb->prefix . 'rent_rented_items';
 
-  $wpdb->delete($table, ['rent_ID' => $id]);
+  $wpdb->delete($tableRentedItems, ['rent_id' => $id]);
+  $wpdb->delete($tableRents, ['id' => $id]);
 
-  return ['message' => 'Rent deleted'];
+
+  return get_all_rents();
+  //return new WP_REST_Response(['deleted' => true], 200);
 }
+
+
+
+
+
+function allRentsSql()
+{
+  return (
+    "
+      SELECT mal_rent_rents.*, mal_rent_customers.name AS customer_name, GROUP_CONCAT(mal_rent_items.id) AS items
+      FROM mal_rent_rents
+      JOIN mal_rent_customers ON mal_rent_rents.customer_id = mal_rent_customers.id
+      LEFT JOIN mal_rent_rented_items ON mal_rent_rents.id = mal_rent_rented_items.rent_id
+      LEFT JOIN mal_rent_items ON mal_rent_rented_items.item_id = mal_rent_items.id
+      GROUP BY mal_rent_rents.id
+    "
+  );
+}
+
+// function create_rent(WP_REST_Request $request)
+// {
+//   global $wpdb;
+//   $rents_table = $wpdb->prefix . 'rent_rents';
+//   $items_table = $wpdb->prefix . 'rent_items';
+
+//   $customer_ID = (int) $request->get_param('customer_ID');
+//   $item_ID = (int) $request->get_param('item_ID');
+//   $start_date = sanitize_text_field($request->get_param('start_date'));
+
+//   if (!$customer_ID || !$item_ID || empty($start_date)) {
+//     return new WP_Error('missing_data', 'Όλα τα πεδία είναι υποχρεωτικά', ['status' => 400]);
+//   }
+
+//   // Ελέγχουμε αν υπάρχει διαθέσιμο stock
+//   $stock = $wpdb->get_var($wpdb->prepare("SELECT stock FROM $items_table WHERE item_ID = %d", $item_ID));
+//   if ($stock <= 0) {
+//     return new WP_Error('no_stock', 'Το αντικείμενο δεν είναι διαθέσιμο', ['status' => 400]);
+//   }
+
+//   // Δημιουργία ενοικίασης
+//   $wpdb->insert($rents_table, [
+//     'customer_ID' => $customer_ID,
+//     'item_ID' => $item_ID,
+//     'start_date' => $start_date,
+//     'returned_date' => null,
+//   ]);
+
+//   // Μείωση του stock
+//   $wpdb->query($wpdb->prepare("UPDATE $items_table SET stock = stock - 1 WHERE item_ID = %d", $item_ID));
+
+//   return ['id' => $wpdb->insert_id];
+// }
+
+// function update_rent(WP_REST_Request $request)
+// {
+//   global $wpdb;
+//   $rents_table = $wpdb->prefix . 'rent_rents';
+//   $items_table = $wpdb->prefix . 'rent_items';
+
+//   $id = (int) $request['id'];
+//   $returned_date = sanitize_text_field($request->get_param('returned_date'));
+
+//   // Παίρνουμε το item_ID της ενοικίασης
+//   $item_ID = $wpdb->get_var($wpdb->prepare("SELECT item_ID FROM $rents_table WHERE rent_ID = %d", $id));
+
+//   // Ενημέρωση της ενοικίασης
+//   $wpdb->update($rents_table, ['returned_date' => $returned_date], ['rent_ID' => $id]);
+
+//   // Αύξηση του stock
+//   $wpdb->query($wpdb->prepare("UPDATE $items_table SET stock = stock + 1 WHERE item_ID = %d", $item_ID));
+
+//   return ['id' => $id, 'returned_date' => $returned_date];
+// }
+
+// function delete_rent(WP_REST_Request $request)
+// {
+//   global $wpdb;
+//   $table = $wpdb->prefix . 'rent_rents';
+//   $id = (int) $request['id'];
+
+//   $wpdb->delete($table, ['rent_ID' => $id]);
+
+//   return ['message' => 'Rent deleted'];
+// }

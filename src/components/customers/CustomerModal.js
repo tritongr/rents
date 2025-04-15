@@ -51,6 +51,7 @@ export function CustomerModal({
         <div className="modal-header">
           <p className={headerClass}>{header}</p>
         </div>
+
         {/* Fields */}
         <div>
           <input
@@ -66,12 +67,6 @@ export function CustomerModal({
             onChange={(e) => setEditingCustomer({ ...editingCustomer, notes: e.target.value })}
             placeholder="Εισάγετε σχόλια"
           />
-          <input
-            type="text"
-            value={editingCustomer.phone}
-            onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
-            placeholder="Εισάγετε τηλέφωνο"
-          />
         </div>
 
         {/* Buttons */}
@@ -79,7 +74,7 @@ export function CustomerModal({
 
           {/* Save */}
           <button
-            title="Ενημέρωση"
+            title={isNewCustomer ? "Προσθήκη" : "Ενημέρωση"}
             className="button-save"
             onClick={isNewCustomer ? onSaveNew : onSaveEdit}
           >
