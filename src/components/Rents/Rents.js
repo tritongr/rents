@@ -69,8 +69,6 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
     return `${day}/${month}`;
   };
 
-
-
   /** 
      * New rent
     */
@@ -120,7 +118,8 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
     // Fail save new record
     function handleError(error) {
-      toast.error("Αποτυχία δημιουργίας!")
+      const msg = error.response?.data?.error || "Κάτι πήγε στραβά κατά την αποθήκευση.";
+      toast.error(msg)
       console.error("Error saving new editingRent: ", error)
     }
 
@@ -145,9 +144,8 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   // *** AXIOS ***
   function onSaveEdit() {
     // Προετοιμασία του edited rent record
-    console.log("editingRent###>", editingRent)
     const editRent = {
-      id: editingRent.id,
+      id: parseInt(editingRent.id),
       customer_id: parseInt(selectedCustomer.value),
       rented_items: selectedItems.map(i => parseInt(i.value)),
       start_date: editingRent.start_date,
@@ -156,6 +154,8 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       paid_date: editingRent.paid_date,
       notes: editingRent.notes
     }
+
+    console.log("editRent", editRent)
 
     // Axios parameters
     const axiosVars = {
@@ -180,7 +180,9 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
     // Fail save edited record 
     function handleError(error) {
-      console.error("Error saving editingRent: ", error)
+      const msg = error.response?.data?.error || "Κάτι πήγε στραβά κατά την ενημέρωση.";
+      toast.error(msg)
+      console.log("Error saving edit: ", error)
     }
 
     // Axios call
@@ -220,7 +222,10 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
     // Fail delete record
     function handleError(error) {
-      console.error("Error deleting item: ", error)
+      const msg = error.response?.data?.message || "Κάτι πήγε στραβά κατά την διαγραφή."
+      toast.error("Η διαγραφή απέτυχε.")
+      console.log("Error deleting rent => ", error)
+      console.log("msg", msg)
     }
 
     // Axios call
@@ -381,9 +386,9 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
                   className="sortable-column-header"
                   onClick={() => handleSortToggle("is_active")}
                 >
-                  Επιστροφή {sortColumn === "is_returned" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  Επεστράφη {sortColumn === "is_returned" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
                 </th>
-                <th className="">Εξόφληση</th>
+                <th className="">Εξοφλήθη</th>
                 <th className="">Παρατηρήσεις</th>
                 <th className="">Actions</th>
 
@@ -422,10 +427,10 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
 
                       {/* Returned date */}
-                      <td className="td-center" >{rent.ret_date && rent.ret_date !== "0000-00-00" ? formatDateShort(rent.ret_date) + " ✅" : "❌"}</td>
+                      <td className="td-center" >{rent.ret_date && rent.ret_date !== "0000-00-00" ? formatDateShort(rent.ret_date) + " ✅" : "Όχι ❌"}</td>
 
                       {/* Paid date */}
-                      <td className="td-center" >{rent.paid_date && rent.paid_date !== "0000-00-00" ? formatDateShort(rent.paid_date) + " ✅" : "❌"}</td>
+                      <td className="td-center" >{rent.paid_date && rent.paid_date !== "0000-00-00" ? formatDateShort(rent.paid_date) + " ✅" : "Όχι ❌"}</td>
 
                       {/* Notes */}
                       <td style={{ whiteSpace: "pre-wrap" }}>{rent.notes}</td>

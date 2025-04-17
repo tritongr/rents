@@ -86,8 +86,9 @@ function Items({ items, setItems, nullItem, API }) {
 
     // Fail save new record
     function handleError(error) {
+      const msg = error.response?.data?.error || "Κάτι πήγε στραβά κατά την αποθήκευση."
+      toast.error(msg)
       console.error("Error saving new editingItem: ", error)
-      toast.error("Αποτυχία δημιουργίας!")
     }
 
     // Axios call
@@ -129,21 +130,12 @@ function Items({ items, setItems, nullItem, API }) {
 
       toast.info('Το είδος ενημερώθηκε!')
 
-      // // Το τοπικό items ενημερώνεται από το editingItem
-      // setItems(prevItems => (
-      //   prevItems.map(item => (item.id === editingItem.id ? editingItem : item))
-      // ))
-
-      // // toast message
-      // toast.info('Το είδος ενημερώθηκε!')
-
-      // // Sort by name
-      // sortDefault()
-
     }
 
     // Fail save edited record 
     function handleError(error) {
+      const msg = error.response?.data?.error || "Κάτι πήγε στραβά κατά την ενημέρωση."
+      toast.error(msg)
       console.error("Error saving editingItem: ", error)
     }
 
@@ -184,7 +176,9 @@ function Items({ items, setItems, nullItem, API }) {
 
     // Fail delete record
     function handleError(error) {
-      console.error("Error deleting item: ", error)
+      const msg = error.response?.data?.error || "Κάτι πήγε στραβά κατά την διαγραφή."
+      toast.error(msg)
+      console.log("Error deleting item => ", error)
     }
 
     // Axios call
@@ -318,7 +312,7 @@ function Items({ items, setItems, nullItem, API }) {
                 sortedItems.map(item => (
                   <tr
                     key={item.id}
-                    className={item.is_available != 0 ? "active-row" : ""}
+                    className={item.is_rented != 1 ? "active-row" : ""}
                   >
                     {/* Name */}
                     <td>{item.id} - {item.name}</td>
@@ -328,7 +322,7 @@ function Items({ items, setItems, nullItem, API }) {
 
                     {/* Is Available */}
                     <td style={{ textAlign: "center" }} >
-                      {item.is_available != 0 ? "✅" : "❌"}
+                      {item.is_rented != 1 ? "Ναι ✅" : "Όχι ❌"}
                     </td>
                     {/* Action buttons */}
                     <td>

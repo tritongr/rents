@@ -35,17 +35,17 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
       text-align: center;
     }
 
-    /* Κρύβουμε πεςριττές στήλες στα κινητά */
-    @media (max-width: 600px) {
+    // /* Κρύβουμε πεςριττές στήλες στα κινητά */
+    // @media (max-width: 600px) {
 
-      // Τηλέφωνο, Αctive
-      th:nth-child(3),
-      td:nth-child(3),
-      th:nth-child(4),
-      td:nth-child(4) {
-        display: none;
-      }
-    }
+    //   // Τηλέφωνο, Αctive
+    //   th:nth-child(3),
+    //   td:nth-child(3),
+    //   th:nth-child(4),
+    //   td:nth-child(4) {
+    //     display: none;
+    //   }
+    // }
   }
 
   .button-add-new {
@@ -66,6 +66,11 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
   .active-row {
     background-color: hsl(120, 100%, 92%); // Απαλό μπλε (WordPress style)
     // font-weight: bold; // Κάνει το κείμενο πιο εμφανές
+  }
+
+  // Η γραμμή που είναι εκκρεμής
+  .pending-row {
+    background-color: hsla(27, 84%, 65%, 0.342);
   }
 
   // Search & filtering

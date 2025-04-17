@@ -3,7 +3,7 @@ import "./Main.scss"
 import React, { useState, useEffect } from "react"
 import { createRoot } from 'react-dom/client'
 import axios from "axios"
-import { ToastContainer, Slide } from 'react-toastify'
+import { ToastContainer, Slide, toast } from 'react-toastify'
 
 import { TabsPanel } from "./utilities/TabsPanel"
 import Customers from "./customers/Customers"
@@ -28,7 +28,7 @@ function Main() {
   }
 
   // Load all customers 
-  useEffect(loadAllCustomers, [])
+  useEffect(loadAllCustomers, [rents])
   function loadAllCustomers() {
     const axiosVars = {
       method: "GET",
@@ -42,6 +42,8 @@ function Main() {
     }
     //Handle error
     function handleError(error) {
+      const msg = error.response?.data?.error || "Error fetching all customers.";
+      toast.error(msg)
       console.error("Error fetching all customers: ", error)
     }
     axios(axiosVars)
@@ -50,7 +52,7 @@ function Main() {
   }
 
   // Load all items 
-  useEffect(loadAllItems, [])
+  useEffect(loadAllItems, [rents])
   function loadAllItems() {
     const axiosVars = {
       method: "GET",
@@ -64,6 +66,8 @@ function Main() {
     }
     //Handle error
     function handleError(error) {
+      const msg = error.response?.data?.error || "Error fetching all items.";
+      toast.error(msg)
       console.error("Error fetching all items: ", error)
     }
     axios(axiosVars)
@@ -89,6 +93,8 @@ function Main() {
 
     //Handle error
     function handleError(error) {
+      const msg = error.response?.data?.error || "Error fetching all rents.";
+      toast.error(msg)
       console.error("Error fetching all rents: ", error)
     }
     axios(axiosVars)
@@ -119,22 +125,22 @@ function Main() {
             />
           },
           {
-            name: "Customers",
-            title: "Πελάτες",
-            content: <Customers
-              customers={customers}
-              setCustomers={setCustomers}
-              nullCustomer={nullCustomer}
-              API={API}
-            />
-          },
-          {
             name: "Items",
             title: "Εξοπλισμός",
             content: <Items
               items={items}
               setItems={setItems}
               nullItem={nullItem}
+              API={API}
+            />
+          },
+          {
+            name: "Customers",
+            title: "Πελάτες",
+            content: <Customers
+              customers={customers}
+              setCustomers={setCustomers}
+              nullCustomer={nullCustomer}
               API={API}
             />
           },

@@ -36,16 +36,16 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
     }
 
     /* Κρύβουμε πεςριττές στήλες στα κινητά */
-    @media (max-width: 600px) {
+    // @media (max-width: 600px) {
 
-      // Τηλέφωνο, Αctive
-      th:nth-child(3),
-      td:nth-child(3),
-      th:nth-child(4),
-      td:nth-child(4) {
-        display: none;
-      }
-    }
+    //   // Τηλέφωνο, Αctive
+    //   th:nth-child(3),
+    //   td:nth-child(3),
+    //   th:nth-child(4),
+    //   td:nth-child(4) {
+    //     display: none;
+    //   }
+    // }
   }
 
   .button-add-new {

@@ -1,7 +1,7 @@
 @use '../utilities/colors.scss';
 
 .modal-overlay {
-  position: fixed;
+  // position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -22,7 +22,7 @@
 
   .modal-header {
     margin-bottom: 10px;
-    font-size: 1.7em;
+    font-size: 1.5em;
     line-height: 1.2em;
     color: colors.$wordpress-blue;
 

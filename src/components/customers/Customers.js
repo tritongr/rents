@@ -76,21 +76,12 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
 
       toast.success('Ο πελάτης προστέθηκε!')
 
-      // const newId = response.data.id
-
-      // if (newId) {
-      //   setCustomers(prevCustomers => ([...prevCustomers, { ...editingCustomer, id: newId }]))
-      //   sortDefault()
-      // } else {
-      //   toast.error("Αποτυχία προσθήκης!")
-      // }
-      // // Sort by name
-      // sortDefault()
     }
 
     // Fail save new record
     function handleError(error) {
-      toast.error("Αποτυχία δημιουργίας!")
+      const msg = error.response?.data?.error || "Κάτι πήγε στραβά κατά την αποθήκευση."
+      toast.error(msg)
       console.error("Error saving new editingCustomer: ", error)
     }
 
@@ -133,21 +124,12 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
 
       toast.info('Ο πελάτης ενημερώθηκε!')
 
-      // // Το τοπικό customers ενημερώνεται από το editingCustomer
-      // setCustomers(prevCustomers => (
-      //   prevCustomers.map(customer => (customer.id === editingCustomer.id ? editingCustomer : customer))
-      // ))
-
-      // // toast message
-      // toast.info('Ο πελάτης ενημερώθηκε!')
-
-      // // Sort by name
-      // sortDefault()
-
     }
 
     // Fail save edited record 
     function handleError(error) {
+      const msg = error.response?.data?.error || "Κάτι πήγε στραβά κατά την ενημέρωση."
+      toast.error(msg)
       console.error("Error saving editingCustomer: ", error)
     }
 
@@ -182,13 +164,17 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
     // Success delete record
     // Το response.data περιέχει ολόκληρο τον πίνακα
     function handleSuccess(response) {
+      console.log(response.data)
       setCustomers(response.data)
+      setEditingCustomer(nullCustomer)
       toast.warn('Ο πελάτης διαγράφηκε!') // toast message
     }
 
     // Fail delete record
     function handleError(error) {
-      console.error("Error deleting item: ", error)
+      const msg = error.response?.data?.error || "Κάτι πήγε στραβά κατά την διαγραφή."
+      toast.error(msg)
+      console.error("Error deleting customer: ", error)
     }
 
     // Axios call
@@ -309,7 +295,7 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
                   className="sortable-column-header"
                   onClick={() => handleSortToggle("is_active")}
                 >
-                  Active {sortColumn === "is_active" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  Εκκρεμεί {sortColumn === "is_active" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
                 </th>
                 <th className="">Actions</th>
               </tr>
@@ -322,7 +308,7 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
                 sortedCustomers.map(customer => (
                   <tr
                     key={customer.id}
-                    className={customer.is_active != 0 ? "active-row" : ""}
+                    className={customer.is_pending == 1 ? "pending-row" : ""}
                   >
                     {/* Name */}
                     <td>{customer.id} - {customer.name}</td>
@@ -330,7 +316,7 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
                     <td>{customer.notes}</td>
                     {/* Active */}
                     <td style={{ textAlign: "center" }} >
-                      {customer.is_active != 0 ? "✅" : "❌"}
+                      {customer.is_pending == 1 ? "Ναι ✅" : "Όχι ❌"}
                     </td>
                     {/* Action buttons */}
                     <td>
