@@ -61,11 +61,11 @@ export function ItemModal({
             onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
             placeholder="Εισάγετε ονομασία"
           />
-          <input
-            type="text"
+          <textarea
             value={editingItem.description}
             onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
             placeholder="Εισάγετε περιγραφή"
+            rows="3"
           />
         </div>
 

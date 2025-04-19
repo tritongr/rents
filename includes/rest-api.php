@@ -201,8 +201,8 @@ function create_customer(WP_REST_Request $request)
     $tableCustomers = $wpdb->prefix . 'rent_customers';
 
     // Τα fields του νέου record που στάλθηκαν
-    $name = sanitize_text_field($customer["name"]);
-    $notes = sanitize_text_field($customer["notes"]);
+    $name = sanitize_textarea_field($customer["name"]);
+    $notes = sanitize_textarea_field($customer["notes"]);
 
     // Validation των fields
     if (empty($name)) {
@@ -250,8 +250,8 @@ function update_customer(WP_REST_Request $request)
 
     // Τα fields που στάλθηκαν
     $id = (int) $customer['id'];
-    $name = sanitize_text_field($customer["name"]);
-    $notes = sanitize_text_field($customer["notes"]);
+    $name = sanitize_textarea_field($customer["name"]);
+    $notes = sanitize_textarea_field($customer["notes"]);
 
     if (empty($name)) {
       return new WP_REST_Response(['error' => 'Το όνομα είναι υποχρεωτικό'], 500);
@@ -344,9 +344,185 @@ function delete_customer(WP_REST_Request $request)
 
 /**
  * GET all items
+ * 
  */
 
-function get_all_items()
+function get_all_items(WP_REST_Request $request)
+{
+  global $wpdb;
+
+  $tableItems = $wpdb->prefix . 'rent_items';
+  $tableRentedItems = $wpdb->prefix . 'rent_rented_items';
+  $tableRents = $wpdb->prefix . 'rent_rents';
+  $tableCustomers = $wpdb->prefix . 'rent_customers';
+
+  // Πάρε όλα τα items
+  $all_items = $wpdb->get_results("SELECT * FROM $tableItems ORDER BY name ASC", ARRAY_A);
+
+  // Πάρε όλες τις ενεργές ενοικιάσεις μαζί με πελάτες
+  $active_rents_per_item = $wpdb->get_results(
+    "
+    SELECT 
+      i.id AS item_id,
+      r.id AS rent_id,
+      r.start_date,
+      r.end_date,
+      r.customer_id,
+      c.name AS customer_name
+    FROM $tableItems i
+    INNER JOIN $tableRentedItems ri ON ri.item_id = i.id
+    INNER JOIN $tableRents r ON r.id = ri.rent_id
+    INNER JOIN $tableCustomers c ON c.id = r.customer_id
+    WHERE r.ret_date IS NULL OR r.ret_date = '0000-00-00'
+    ",
+    ARRAY_A
+  );
+
+  // Οργάνωσε τα active rents ανά item_id
+  $grouped_rents = [];
+  foreach ($active_rents_per_item as $row) {
+    $item_id = $row['item_id'];
+    if (!isset($grouped_rents[$item_id])) {
+      $grouped_rents[$item_id] = [];
+    }
+    $grouped_rents[$item_id][] = [
+      'id' => intval($row['rent_id']),
+      'start_date' => $row['start_date'],
+      'end_date' => $row['end_date'],
+      'customer_id' => intval($row['customer_id']),
+      'customer_name' => $row['customer_name'],
+    ];
+  }
+
+  // Εμπλούτισε τα items με active_rents και is_rented
+  foreach ($all_items as &$item) {
+    $item_id = $item['id'];
+    $item['active_rents'] = $grouped_rents[$item_id] ?? [];
+    $item['is_rented'] = !empty($item['active_rents']);
+  }
+
+  return new WP_REST_Response($all_items, 200);
+}
+
+
+function get_all_items_bkp3(WP_REST_Request $request)
+{
+  global $wpdb;
+
+  $tableItems = $wpdb->prefix . 'rent_items';
+  $tableRentedItems = $wpdb->prefix . 'rent_rented_items';
+  $tableRents = $wpdb->prefix . 'rent_rents';
+
+  // Πάρε όλα τα items
+  $all_items = $wpdb->get_results("SELECT * FROM $tableItems ORDER BY name ASC", ARRAY_A);
+
+  // Πάρε όλες τις ενεργές ενοικιάσεις (rent.ret_date NULL ή '0000-00-00')
+  $active_rents_per_item = $wpdb->get_results(
+    "
+    SELECT 
+      i.id AS item_id,
+      r.id AS rent_id,
+      r.start_date,
+      r.end_date
+    FROM $tableItems i
+    INNER JOIN $tableRentedItems ri ON ri.item_id = i.id
+    INNER JOIN $tableRents r ON r.id = ri.rent_id
+    WHERE r.ret_date IS NULL OR r.ret_date = '0000-00-00'
+    ",
+    ARRAY_A
+  );
+
+  // Οργάνωσε τα active rents ανά item_id
+  $grouped_rents = [];
+  foreach ($active_rents_per_item as $row) {
+    $item_id = $row['item_id'];
+    if (!isset($grouped_rents[$item_id])) {
+      $grouped_rents[$item_id] = [];
+    }
+    $grouped_rents[$item_id][] = [
+      'id' => intval($row['rent_id']),
+      'start_date' => $row['start_date'],
+      'end_date' => $row['end_date'],
+    ];
+  }
+
+  // Εμπλούτισε τα items με active_rents και is_rented
+  foreach ($all_items as &$item) {
+    $item_id = $item['id'];
+    $item['active_rents'] = $grouped_rents[$item_id] ?? [];
+    $item['is_rented'] = !empty($item['active_rents']);
+  }
+
+  return new WP_REST_Response($all_items, 200);
+}
+
+
+function get_all_items_bkp2()
+{
+  global $wpdb;
+
+  try { // *** On success ***
+
+    $tableItems = $wpdb->prefix . 'rent_items';
+    $tableRents = $wpdb->prefix . 'rent_rents';
+    $tableRentedItems = $wpdb->prefix . 'rent_rented_items';
+
+    $all_items = $wpdb->get_results(
+      "
+      SELECT 
+        i.*, 
+        EXISTS (
+          SELECT 1 
+          FROM $tableRentedItems ri
+          INNER JOIN $tableRents r ON ri.rent_id = r.id
+          WHERE ri.item_id = i.id 
+            AND (r.ret_date IS NULL OR r.ret_date = '0000-00-00')
+          LIMIT 1
+        ) AS is_rented
+      FROM $tableItems i
+      ORDER BY i.name ASC
+      ",
+      ARRAY_A
+    );
+
+    // Προσθέτουμε τα active_rents_ids ανά item
+    // Θα κάνουμε ένα δεύτερο query που βρίσκει 
+    // όλα τα ενεργά rent_id ανά item_id, και μετά το ενώνουμε με το array $all_items.
+    $active_rent_links = $wpdb->get_results(
+      "
+      SELECT ri.item_id, ri.rent_id
+      FROM $tableRentedItems ri
+      INNER JOIN $tableRents r ON ri.rent_id = r.id
+      WHERE r.ret_date IS NULL OR r.ret_date = '0000-00-00'
+      ",
+      ARRAY_A
+    );
+
+    // Τώρα μπορούμε να κάνουμε "ένωση" με βάση το item_id:
+    // Ομαδοποιούμε τα rent_ids ανά item_id
+    $active_rents_map = [];
+    foreach ($active_rent_links as $link) {
+      $item_id = $link['item_id'];
+      if (!isset($active_rents_map[$item_id])) {
+        $active_rents_map[$item_id] = [];
+      }
+      $active_rents_map[$item_id][] = $link['rent_id'];
+    }
+
+    // Προσθέτουμε το πεδίο active_rents_ids σε κάθε item
+    foreach ($all_items as &$item) {
+      $item_id = $item['id'];
+      $item['active_rents_ids'] = $active_rents_map[$item_id] ?? [];
+    }
+
+    return new WP_REST_Response($all_items, 200);
+  } catch (Exception $e) { // *** On error ***
+
+    return new WP_REST_Response(['error' => $e->getMessage()], 500);
+  }
+}
+
+function get_all_items_bkp()
 {
   global $wpdb;
 
@@ -398,8 +574,8 @@ function create_item(WP_REST_Request $request)
     $table = $wpdb->prefix . 'rent_items';
 
     // Τα fields του νέου record που στάλθηκαν
-    $name = sanitize_text_field($item["name"]);
-    $description = sanitize_text_field($item["description"]);
+    $name = sanitize_textarea_field($item["name"]);
+    $description = sanitize_textarea_field($item["description"]);
 
     // Validation των fields
     if (empty($name)) {
@@ -448,8 +624,8 @@ function update_item(WP_REST_Request $request)
 
     // Τα fields που στάλθηκαν
     $id = (int) $item['id'];
-    $name = sanitize_text_field($item["name"]);
-    $description = sanitize_text_field($item["description"]);
+    $name = sanitize_textarea_field($item["name"]);
+    $description = sanitize_textarea_field($item["description"]);
 
     // Προσπάθεια update
     $affected_rows = $wpdb->update(
@@ -516,11 +692,6 @@ function delete_item(WP_REST_Request $request)
 
     if ($usage_count > 0):
       return new WP_REST_Response(['error' => 'Δεν μπορείτε να διαγράψετε αυτόν τον εξοπλισμό γιατί χρησιμοποιείται σε ενοικιάσεις.'], 500);
-    // return new WP_Error(
-    //   'cannot_delete_item',
-    //   'Δεν μπορείτε να διαγράψετε αυτόν τον εξοπλισμό γιατί έχει χρησιμοποιηθεί σε ενοικιάσεις.',
-    //   ['status' => 500]
-    // );
     endif;
 
     // Προσπάθεια delete
@@ -549,6 +720,36 @@ function delete_item(WP_REST_Request $request)
  * RENTS Call back functions
  * -----------------------------
  */
+
+/**
+ * Rent validation
+ */
+
+function rentValidRecord($rent)
+{
+  if (empty($rent['customer_id']) or (int)$rent['customer_id'] == 0):
+    error_log("customer is empty ");
+  endif;
+
+  // Έλεγχος: empty start_date, end_date
+  if (empty($rent['start_date']) or empty($rent['end_date']) or strtotime($rent['start_date']) == '0000-00-00' or strtotime($rent['end_date']) == '0000-00-00') :
+    error_log("start_date is empty " . print_r($rent['start_date'], true));
+    return new WP_REST_Response(['error' => 'Η ημερομηνίες έναρξης & λήξης είναι υποχρεωτικές.'], 500);
+  endif;
+
+  // Έλεγχος: start_date <= end_date
+  if ($rent['start_date'] > $rent['end_date']):
+    return new WP_REST_Response(['error' => 'Η ημερομηνία έναρξης δεν μπορεί να είναι μεταγενέστερη της λήξης.'], 500);
+  endif;
+
+  if (count($rent['rented_items']) < 1 or empty($rent['rented_items']) or !is_array($rent['rented_items'])):
+    return new WP_REST_Response(['error' => 'Δεν επιλέξατε εξοπλισμό.'], 500);
+  endif;
+
+  if (!empty($rent['name'])):
+    return new WP_REST_Response(['error' => 'Δεν επιλέξατε πελάτη.'], 500);
+  endif;
+}
 
 /**
  * GET all rents
@@ -599,11 +800,6 @@ function create_rent($request)
 
     // Το rent object που έστειλε το axios
     $rent = $request->get_json_params();
-
-    // Έλεγχος: start_date <= end_date
-    if ($rent['start_date'] > $rent['end_date']) {
-      return new WP_REST_Response(['error' => 'Η ημερομηνία έναρξης δεν μπορεί να είναι μεταγενέστερη της λήξης.'], 400);
-    }
 
     // Προσπάθεια insert
     $inserted  = $wpdb->insert('mal_rent_rents', [
@@ -656,6 +852,14 @@ function update_rent($request)
     // Έλεγχος: start_date <= end_date
     if ($rent['start_date'] > $rent['end_date']):
       return new WP_REST_Response(['error' => 'Η ημερομηνία έναρξης δεν μπορεί να είναι μεταγενέστερη της λήξης.'], 500);
+    endif;
+
+    if (count($rent['rented_items']) < 1 or empty($rent['rented_items']) or !is_array($rent['rented_items'])):
+      return new WP_REST_Response(['error' => 'Δεν επιλέξατε εξοπλισμό.'], 500);
+    endif;
+
+    if (!empty($rent['name'])):
+      return new WP_REST_Response(['error' => 'Δεν επιλέξατε πελάτη.'], 500);
     endif;
 
     // Table names variables
@@ -734,14 +938,32 @@ function delete_rent($request)
       return new WP_REST_Response(['error' => 'Δεν μπορείτε να διαγράψετε την τελευταία ενοικίαση.'], 500);
     }
 
-    $id = $rent['id'];
+    // Το rent.id
+    $id = (int)$rent['id'];
 
-    // Προσπάθεια delete
-    $affected1 = $wpdb->delete($tableRentedItems, ['rent_id' => $id]);
+    // Έλεγχος: Υπάρχουν rented items;
+    $total_rented_items = $wpdb->get_var("SELECT COUNT(*) FROM $tableRentedItems  WHERE rent_id = $id");
+
+    if ($total_rented_items > 0):
+      // Προσπάθεια delete rented_items
+      $affected1 = $wpdb->delete($tableRentedItems, ['rent_id' => $id]);
+
+      // Έλεγχος αν πέτυχε το delete στον rented_items
+      if ($affected1 === false) {
+        // Σφάλμα
+        return new WP_REST_Response(['error' => 'Αποτυχία διαγραφής μερών της ενοικίασης.'], 500);
+      } elseif ($affected1 === 0) {
+        return new WP_REST_Response(['error' => 'Δεν διαγράφηκαν μέρη της ενοικίασης.'], 400);
+      } else {
+        // Επιτυχία
+      }
+    endif;
+
+    // Προσπάθεια delete rents
     $affected2 = $wpdb->delete($tableRents, ['id' => $id]);
 
-    // Έλεγχος αν πέτυχε το delete
-    if ($affected1 === false || $affected2 === false) {
+    // Έλεγχος αν πέτυχε το delete στον rents
+    if ($affected2 === false) {
       // Σφάλμα
       return new WP_REST_Response(['error' => 'Αποτυχία διαγραφής της ενοικίασης ή μέρους της.'], 500);
     } elseif ($affected1 === 0 || $affected2 === 0) {
@@ -755,5 +977,4 @@ function delete_rent($request)
   }
 
   return get_all_rents();
-  //return new WP_REST_Response(['deleted' => true], 200);
 }

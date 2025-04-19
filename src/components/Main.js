@@ -88,7 +88,6 @@ function Main() {
     function handleSuccess(response) {
       // Ενημέρωση του state rents
       setRents(response.data)
-      console.log("rents: ", rents.length)
     }
 
     //Handle error
@@ -126,7 +125,7 @@ function Main() {
           },
           {
             name: "Items",
-            title: "Εξοπλισμός",
+            title: "Εξοπλισμός ",
             content: <Items
               items={items}
               setItems={setItems}

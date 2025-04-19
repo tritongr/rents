@@ -6,6 +6,7 @@
  */
 
 import "./Rents.scss"
+import { isValidDate, isDatePast, formatDateShort } from "../../utilities/functionsLib"
 
 import React, { useState, useEffect, useRef } from "react"
 import axios from "axios"
@@ -21,6 +22,8 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   /**
    * States
    */
+
+
   // Selected Customer object για single react-select dropdown {label: "Χρήστος", value: n}, ...}
   const [selectedCustomer, setSelectedCustomer] = useState({})
 
@@ -43,31 +46,54 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   const [isNewRent, setIsNewRent] = useState(true);
 
   // Sorting & filtering
+  const [showUnreturned, setShowUnreturned] = useState(false)
+  const [showUnpaid, setShowUnpaid] = useState(false)
+  const [showFutured, setShowFutured] = useState(false)
+
   const [showNotReturnedOnly, setShowNotReturnedOnly] = useState(false)
   const [searchText, setSearchText] = useState("")
   const [sortColumn, setSortColumn] = useState(null)
   const [sortDirection, setSortDirection] = useState("asc")
 
-  // Dates converion από dd/mm/yyyy σε yyyy-mm-dd
-  function convertDateToSql(dateStr) {
-    const [d, m, y] = dateStr.split('/');
-    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-  }
+  console.log("items => ", items)
 
-  // Dates converion από yyyy-mm-dd σε dd/mm/yyyy
-  function convertDateToDisplay(dateStr) {
-    const [y, m, d] = dateStr.split('-');
-    return `${d}/${m}/${y}`;
-  }
+  /**
+   *  Validation
+   */
+  function validRent() {
 
-  // Dates conversion to DD/MM
-  const formatDateShort = (dateStr) => {
-    if (!dateStr || dateStr === "0000-00-00") return "";
-    const date = new Date(dateStr);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    return `${day}/${month}`;
-  };
+    if (!selectedCustomer || Object.keys(selectedCustomer).length == 0) {
+      toast.error('Δεν επιλέξατε πελάτη.')
+      return false
+    }
+    if (!selectedItems || selectedItems.length == 0) {
+      toast.error('Δεν επιλέξατε εξοπλισμό.')
+      return false
+    }
+    if (!editingRent.start_date || editingRent.start_date === "0000-00-00") {
+      toast.error("Η ημερομηνία έναρξης είναι υποχρεωτική.")
+      return false
+    }
+    if (!editingRent.end_date || editingRent.end_date === "0000-00-00") {
+      toast.error("Η ημερομηνία λήξης είναι υποχρεωτική.")
+      return false
+    }
+    if (editingRent.end_date < editingRent.start_date) {
+      toast.error("Η ημερομηνία έναρξης δεν μπορεί να είναι μεταγενέστερη της ημερομηνίας λήξης.")
+      return false
+    }
+
+    // Προετοιμασία του new/edited rent record for axios
+    return {
+      customer_id: parseInt(selectedCustomer.value),
+      rented_items: selectedItems.map(i => parseInt(i.value)),
+      start_date: editingRent.start_date,
+      end_date: editingRent.end_date,
+      ret_date: editingRent.ret_date,
+      paid_date: editingRent.paid_date,
+      notes: editingRent.notes
+    }
+  }
 
   /** 
      * New rent
@@ -84,15 +110,10 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   // *** AXIOS ***
   function onSaveNew() {
 
-    // Προετοιμασία του new rent record
-    const newRent = {
-      customer_id: parseInt(selectedCustomer.value),
-      rented_items: selectedItems.map(i => parseInt(i.value)),
-      start_date: editingRent.start_date,
-      end_date: editingRent.end_date,
-      ret_date: editingRent.ret_date,
-      paid_date: editingRent.paid_date,
-      notes: editingRent.notes
+    // Get valid record for axios
+    const validNewRent = validRent()
+    if (!validNewRent) {
+      return
     }
 
     // Axios parameters
@@ -100,7 +121,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       method: "POST",
       url: API.URL + "rents",
       headers: { "X-WP-Nonce": API.NONCE },
-      data: newRent
+      data: validNewRent
     }
 
     // Success new record
@@ -143,26 +164,19 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   // Save edit button clicked 
   // *** AXIOS ***
   function onSaveEdit() {
-    // Προετοιμασία του edited rent record
-    const editRent = {
-      id: parseInt(editingRent.id),
-      customer_id: parseInt(selectedCustomer.value),
-      rented_items: selectedItems.map(i => parseInt(i.value)),
-      start_date: editingRent.start_date,
-      end_date: editingRent.end_date,
-      ret_date: editingRent.ret_date,
-      paid_date: editingRent.paid_date,
-      notes: editingRent.notes
-    }
 
-    console.log("editRent", editRent)
+    // Get valid record for axios
+    const validEditRent = validRent()
+    if (!validEditRent) {
+      return
+    }
 
     // Axios parameters
     const axiosVars = {
       method: "PUT",
       url: API.URL + "rents",
       headers: { "X-WP-Nonce": API.NONCE },
-      data: editRent
+      data: { ...validEditRent, id: parseInt(editingRent.id) }
     }
 
     // Success save edited record
@@ -283,20 +297,42 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       <div key={index}>{name}</div>
     ));
   }
-  // Τα Items name από τα delimited με ',' ids 
-  function getRentItems_bak(itemIdsString) {
-    if (!itemIdsString) return '';
 
-    const itemIds = itemIdsString.split(',').map(Number);
-    const itemNames = itemIds.map((itemId) => {
-      const item = items.find((i) => i.id == itemId);
-      return item ? item.name : 'Άγνωστο είδος';
-    });
-
-    return itemNames.map((name, index) => (
-      <div key={index}>{name}</div>
-    ))
+  // Return date
+  function getReturnDate(rent) {
+    if (isValidDate(rent.ret_date)) {
+      return formatDateShort(rent.ret_date) + " ✅"
+    } else {
+      if (isDatePast(rent.end_date)) {
+        return "Όχι ❌"
+      } else {
+        return "Όχι 📅"
+      }
+    }
   }
+
+  // Paid date
+  function getPaidDate(rent) {
+    if (isValidDate(rent.paid_date)) {
+      return formatDateShort(rent.paid_date) + " ✅"
+    } else {
+      if (isDatePast(rent.end_date)) {
+        return "Όχι ❌"
+      } else {
+        return "Όχι 📅"
+      }
+    }
+  }
+
+  /**
+   * Filters
+   */
+  const filteredRents = rents.filter((rent) => {
+    if (showUnreturned && (isValidDate(rent.ret_date) || !isDatePast(rent.end_date))) return false; // Αν θέλουμε μόνο μη επιστραμμένα
+    if (showUnpaid && (isValidDate(rent.paid_date) || !isDatePast(rent.end_date))) return false; // Αν θέλουμε μόνο ανεξόφλητα
+    if (showFutured && isDatePast(rent.start_date)) return false; // Αν θέλουμε μόνο μεννλοντικές ενοικιάσεις
+    return true;
+  })
 
   /**
    *  Rendering
@@ -320,48 +356,52 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
       {/* Add New Rent Button */}
       {isCollapsiblePanelOpen && (
-        <button
-          title="Νέα ενοικίαση"
-          onClick={onAddClick}
-          className="button-add-new"
-        >
-          <span style={{ marginTop: "2px" }} class="dashicons dashicons-plus-alt2"></span>
-        </button>
+        <div>
+          <button
+            title="Νέα ενοικίαση"
+            onClick={onAddClick}
+            className="button-add-new"
+          >
+            <span style={{ marginTop: "2px" }} class="dashicons dashicons-plus-alt2"></span>
+          </button>
+
+        </div>
       )}
 
       {/* Filter controls  */}
       {isCollapsiblePanelOpen && (
-        <div style={{ display: "flex", alignItems: "center", marginLeft: "5px" }}>
+        <div className="filters" style={{ marginBottom: '1em', fontSize: "small" }}>
 
-          {/* Toggle showActive filter */}
-          <div style={{ flex: "1" }} >
-            <label className="active-filter" style={{ whiteSpace: "nowrap" }} >
-              <input
-                type="checkbox"
-                checked={showNotReturnedOnly}
-                onChange={() => setShowNotReturnedOnly(!showNotReturnedOnly)}
-              />
-              &nbsp;Εκκρεμείς &nbsp;&nbsp;
-            </label>
-          </div>
-
-          {/* Search rent input */}
-          <div style={{ flex: "5" }}>
+          {/* Unreturned */}
+          <label style={{ marginRight: '1em' }}>
             <input
-              type="text"
-              placeholder="🔍 Αναζήτηση ενοικίασης..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="search-bar"
+              type="checkbox"
+              checked={showUnreturned}
+              onChange={() => { setShowUnreturned(!showUnreturned); setShowUnpaid(false); setShowFutured(false) }}
             />
-            {searchText && (
-              <button className="button-clear" onClick={() => setSearchText("")}>
-                ✖
-              </button>
-            )}
-          </div>
-        </div>
-      )
+            {' '}Δεν επεστράφησαν
+          </label>
+
+          {/* Unpaid */}
+          <label style={{ marginRight: '1em' }}>
+            <input
+              type="checkbox"
+              checked={showUnpaid}
+              onChange={() => { setShowUnpaid(!showUnpaid); setShowUnreturned(false); setShowFutured(false) }}
+            />
+            {' '}Ανεξόφλητες
+          </label>
+
+          {/* Unpaid */}
+          <label>
+            <input
+              type="checkbox"
+              checked={showFutured}
+              onChange={() => { setShowFutured(!showFutured); setShowUnpaid(false); setShowUnreturned(false) }}
+            />
+            {' '}Μελλοντικές
+          </label>
+        </div>)
       }
 
       {/* Ο Πίνακας */}
@@ -377,7 +417,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
                   className="sortable-column-header"
                   onClick={() => handleSortToggle("customerName")}
                 >
-                  Πελάτης {sortColumn === "customerName" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  Πελάτης ({filteredRents.length}) {sortColumn === "customerName" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
                 </th>
                 <th className="">Είδη</th>
                 <th className="">Έναρξη</th>
@@ -399,7 +439,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
             <tbody>
               {
                 // Filtered + Sorted rents //sortedRents.
-                rents.map(rent => {
+                filteredRents.map(rent => {
                   // const rentCustomer = getRentCustomer(rent) // customer object (of current rent) 
                   const rentItems = getRentedItemsNames(rent.items) // items array of objects (of current rent)
                   return (
@@ -419,18 +459,27 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
                       {/* Items rented */}
                       <td>{rentItems}</td>
 
-                      {/* Start date */}
-                      <td className="td-center" >{rent.start_date && rent.start_date !== "0000-00-00" ? formatDateShort(rent.start_date) : ""}</td>
+                      {/* Start date 📅*/}
+                      <td className="td-center" >
+                        {isValidDate(rent.start_date) ?
+                          formatDateShort(rent.start_date) + (!isDatePast(rent.start_date) ? " 📅" : "") :
+                          ""}
+                      </td>
 
                       {/* End date */}
                       <td className="td-center" >{rent.end_date && rent.end_date !== "0000-00-00" ? formatDateShort(rent.end_date) : ""}</td>
 
 
                       {/* Returned date */}
-                      <td className="td-center" >{rent.ret_date && rent.ret_date !== "0000-00-00" ? formatDateShort(rent.ret_date) + " ✅" : "Όχι ❌"}</td>
+                      <td className="td-center ">
+                        {getReturnDate(rent)}
+                      </td>
+
 
                       {/* Paid date */}
-                      <td className="td-center" >{rent.paid_date && rent.paid_date !== "0000-00-00" ? formatDateShort(rent.paid_date) + " ✅" : "Όχι ❌"}</td>
+                      <td className="td-center" >
+                        {getPaidDate(rent)}
+                      </td>
 
                       {/* Notes */}
                       <td style={{ whiteSpace: "pre-wrap" }}>{rent.notes}</td>
@@ -479,6 +528,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
           setEditingRent={setEditingRent}
           customers={customers}
           items={items}
+          rents={rents}
           selectedItems={selectedItems}
           setSelectedItems={setSelectedItems}
           selectedCustomer={selectedCustomer}

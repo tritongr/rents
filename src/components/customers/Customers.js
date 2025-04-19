@@ -288,7 +288,7 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
                   className="sortable-column-header"
                   onClick={() => handleSortToggle("name")}
                 >
-                  Όνομα {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  Όνομα ({sortedCustomers.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
                 </th>
                 <th className="">Σχόλια</th>
                 <th
@@ -311,9 +311,9 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
                     className={customer.is_pending == 1 ? "pending-row" : ""}
                   >
                     {/* Name */}
-                    <td>{customer.id} - {customer.name}</td>
+                    <td>{customer.name}</td>
                     {/* Notes */}
-                    <td>{customer.notes}</td>
+                    <td style={{ whiteSpace: "pre-wrap" }}>{customer.notes}</td>
                     {/* Active */}
                     <td style={{ textAlign: "center" }} >
                       {customer.is_pending == 1 ? "Ναι ✅" : "Όχι ❌"}

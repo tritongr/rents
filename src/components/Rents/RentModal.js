@@ -5,6 +5,7 @@
  */
 
 import "./RentModal.scss"
+import { isValidDate, isDatePast, formatDateShort } from "../../utilities/functionsLib"
 
 import React, { useState, useEffect, useRef } from 'react'
 import Select from 'react-select'
@@ -16,6 +17,7 @@ export function RentModal({
   setEditingRent,
   customers,
   items,
+  rents,
   selectedItems,
   setSelectedItems,
   selectedCustomer,
@@ -101,6 +103,50 @@ export function RentModal({
     multiValueRemove: (styles, state) => ({ ...styles, cursor: "pointer", }), // το x που το διαγράφει
   }
 
+  /**
+   * Get items for dropdown list
+   */
+  function getItems() {
+
+    const richItems = items.map(i => {
+
+      var iLabel = ""
+      var iIcon = ""
+      var isDisabled = false
+
+
+      if (i.active_rents.length > 0) { // Αν υπάρχουν iActiveRentDates τα βάζουμε στο iLabel
+
+        const iActiveRentDates = i.active_rents.map(ar => {
+          if (isDatePast(ar.start_date)) {
+            iIcon = "❌ "
+            isDisabled = true
+          } else {
+            if (iIcon != "❌ ") {
+              iIcon = "📅 "
+            }
+          }
+
+          return formatDateShort(ar.start_date) + "-" + formatDateShort(ar.end_date)
+        }
+        ).toString()
+
+        iLabel = iIcon + i.name + " (" + iActiveRentDates + ")"
+
+      } else { // Αν υπάρχουν iActiveRentDates το iLabel είναι το ι.ναμε
+        iLabel = i.name
+      }
+
+      return { label: iLabel, value: parseInt(i.id), isDisabled: isDisabled }
+
+      //return ({ label: (i.is_rented == 1 ? "❌ " : "") + i.name, value: parseInt(i.id) }))
+    }
+    )
+    console.log("richItems: => ", richItems)
+
+    return richItems
+  }
+
   return (
     <div className='modal-wraper modal-overlay'>
 
@@ -126,7 +172,12 @@ export function RentModal({
           {/* Items multi select */}
           <Select
             placeholder="Επιλέξτε εξοπλισμό..."
-            options={items.map(i => ({ label: (i.is_rented == 1 ? "❌ " : "") + i.name, value: parseInt(i.id) }))}
+            options={getItems()}
+
+            // options={
+            //   items.map(i => ({ label: (i.is_rented == 1 ? "❌ " : "") + i.name, value: parseInt(i.id) }))
+            // }
+
             value={selectedItems}
             onChange={selection => setSelectedItems(selection)}
             isMulti

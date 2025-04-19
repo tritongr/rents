@@ -6,6 +6,7 @@
  */
 
 import "./Items.scss"
+import { isValidDate, isDatePast, formatDateShort } from "../../utilities/functionsLib"
 
 import React, { useState, useEffect, useRef } from "react"
 import axios from "axios"
@@ -39,6 +40,8 @@ function Items({ items, setItems, nullItem, API }) {
 
   // Sorting & filtering
   const [showAvailableOnly, setShowAvailableOnly] = useState(false)
+  const [showRentedOnly, setShowRentedOnly] = useState(false)
+
   const [searchText, setSearchText] = useState("")
   const [sortColumn, setSortColumn] = useState(null)
   const [sortDirection, setSortDirection] = useState("asc")
@@ -192,9 +195,38 @@ function Items({ items, setItems, nullItem, API }) {
    */
 
   // Φιλτράρισμα βάσει searchText και Available Filter
+
+  // Is item available
+  function isItemAvailable(item) {
+    var ret = true
+
+    if (item.active_rents.length == 0) return true
+    item.active_rents.some(rent => {
+      if (isDatePast(rent.start_date)) {
+        ret = false
+      }
+    })
+    return ret
+  }
+
+  // Is item rented
+  function isItemRented(item) {
+    var ret = true
+
+    if (item.active_rents.length == 0) return false
+    item.active_rents.some(rent => {
+      if (isDatePast(rent.start_date)) {
+        ret = true
+      }
+    })
+    return ret
+  }
+
+  // Filter items
   const filteredItems = items
-    .filter(item => !showAvailableOnly || item.is_available == 1) // active items
-    .filter(item => item.name.toLowerCase().includes(searchText.toLowerCase())) // name search
+    .filter(item => !showAvailableOnly || isItemAvailable(item))
+    .filter(item => !showRentedOnly || isItemRented(item))
+    .filter(item => item.name.toLowerCase().includes(searchText.toLowerCase()))
 
   // Sorting Λειτουργία
   const sortedItems = [...filteredItems].sort((a, b) => {
@@ -216,6 +248,28 @@ function Items({ items, setItems, nullItem, API }) {
       setSortColumn(column);
       setSortDirection("asc");
     }
+  }
+
+  // Is rented column
+  function getIsAvailable(item) {
+    console.log("item.active_rents.length: ", item.active_rents.length)
+
+    // Αν το είδος δεν είναι νοικιασμένο ή προς ενοικίαση (rents.ret_date is empty)
+    if (item.active_rents.length == 0) {
+      return "Ναι ✅"
+    }
+
+    // Αν το είδος είναι νοικιασμένο
+    var iIcon = "Μέχρι 📅 "
+
+    const iActiveRentDates = item.active_rents.map(ar => {
+      if (isDatePast(ar.start_date)) {
+        iIcon = "Όχι ❌ "
+      }
+      return ar.customer_name + ": " + formatDateShort(ar.start_date) + "-" + formatDateShort(ar.end_date) + "\n"
+    })
+
+    return iIcon + "\n" + iActiveRentDates
   }
 
   /**
@@ -254,14 +308,26 @@ function Items({ items, setItems, nullItem, API }) {
               <input
                 type="checkbox"
                 checked={showAvailableOnly}
-                onChange={() => setShowAvailableOnly(!showAvailableOnly)}
+                onChange={() => { setShowRentedOnly(false); setShowAvailableOnly(!showAvailableOnly) }}
               />
               &nbsp;Διαθέσιμα &nbsp;&nbsp;
             </label>
           </div>
 
+          {/* Toggle showRented filter */}
+          <div style={{ flex: "1" }} >
+            <label className="active-filter" style={{ whiteSpace: "nowrap" }} >
+              <input
+                type="checkbox"
+                checked={showRentedOnly}
+                onChange={() => { setShowAvailableOnly(false); setShowRentedOnly(!showRentedOnly) }}
+              />
+              &nbsp;Νοικιασμένα &nbsp;&nbsp;
+            </label>
+          </div>
+
           {/* Search item input */}
-          <div style={{ flex: "5" }}>
+          <div style={{ flex: "4" }}>
             <input
               type="text"
               placeholder="🔍 Αναζήτηση εξοπλισμού..."
@@ -292,7 +358,7 @@ function Items({ items, setItems, nullItem, API }) {
                   className="sortable-column-header"
                   onClick={() => handleSortToggle("name")}
                 >
-                  Όνομασία {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  Όνομασία ({filteredItems.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
                 </th>
                 <th className="">Περιγραφή</th>
                 <th
@@ -309,21 +375,27 @@ function Items({ items, setItems, nullItem, API }) {
             <tbody>
               {
                 // Filtered + Sorted items
-                sortedItems.map(item => (
+                filteredItems.map(item => (
                   <tr
                     key={item.id}
                     className={item.is_rented != 1 ? "active-row" : ""}
                   >
                     {/* Name */}
-                    <td>{item.id} - {item.name}</td>
+                    <td>{item.name}</td>
 
                     {/* Description */}
-                    <td>{item.description}</td>
+                    <td style={{ whiteSpace: "pre-wrap" }}>{item.description}</td>
 
                     {/* Is Available */}
-                    <td style={{ textAlign: "center" }} >
+                    {/* <td style={{ textAlign: "center" }} >
                       {item.is_rented != 1 ? "Ναι ✅" : "Όχι ❌"}
+                    </td> */}
+
+                    <td style={{ textAlign: "center", whiteSpace: 'pre-wrap' }} >
+                      {getIsAvailable(item)}
                     </td>
+
+
                     {/* Action buttons */}
                     <td>
                       <div id="action-buttons">

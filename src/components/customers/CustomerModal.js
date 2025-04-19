@@ -61,11 +61,11 @@ export function CustomerModal({
             onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
             placeholder="Εισάγετε όνομα"
           />
-          <input
-            type="text"
+          <textarea
             value={editingCustomer.notes}
             onChange={(e) => setEditingCustomer({ ...editingCustomer, notes: e.target.value })}
-            placeholder="Εισάγετε σχόλια"
+            placeholder="Σχόλια"
+            rows="3"
           />
         </div>
 
