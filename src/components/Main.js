@@ -12,7 +12,7 @@ import Rents from "./rents/Rents"
 
 function Main() {
 
-  const nullCustomer = { id: 0, name: "", notes: "", is_active: false }
+  const nullCustomer = { id: 0, name: "", notes: "", phone: "" }
   const [customers, setCustomers] = useState([])
 
   const nullItem = { id: 0, name: "", description: "", is_available: true }
@@ -38,7 +38,9 @@ function Main() {
     // Handle success
     function handleSuccess(response) {
       // Ενημέρωση του state customers
+      //console.log("<Main />: customers response.data: ", response.data)
       setCustomers(response.data)
+      //console.log("<Main />: customers=> ", customers)
     }
     //Handle error
     function handleError(error) {
@@ -74,6 +76,11 @@ function Main() {
       .then(handleSuccess)
       .catch(handleError)
   }
+
+  useEffect(() => {
+    console.log("<Main />: customers UPDATED =>", customers);
+  }, [customers]);
+
 
   // Load all rents 
   useEffect(loadAllRents, [])
@@ -140,9 +147,12 @@ function Main() {
               customers={customers}
               setCustomers={setCustomers}
               nullCustomer={nullCustomer}
+              rents={rents}
+              items={items}
               API={API}
             />
           },
+
         ]}
       />
 

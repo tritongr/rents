@@ -43,7 +43,7 @@ function Items({ items, setItems, nullItem, API }) {
   const [showRentedOnly, setShowRentedOnly] = useState(false)
 
   const [searchText, setSearchText] = useState("")
-  const [sortColumn, setSortColumn] = useState(null)
+  const [sortColumn, setSortColumn] = useState("name")
   const [sortDirection, setSortDirection] = useState("asc")
 
   /** 
@@ -233,9 +233,9 @@ function Items({ items, setItems, nullItem, API }) {
     if (sortColumn === "name") {
       return sortDirection === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
     }
-    if (sortColumn === "is_available") {
-      return sortDirection === "asc" ? b.is_available - a.is_available : a.is_available - b.is_available
-    }
+    // if (sortColumn === "is_available") {
+    //   return sortDirection === "asc" ? b.is_available - a.is_available : a.is_available - b.is_available
+    // }
 
     return 0
   });
@@ -252,7 +252,6 @@ function Items({ items, setItems, nullItem, API }) {
 
   // Is rented column
   function getIsAvailable(item) {
-    console.log("item.active_rents.length: ", item.active_rents.length)
 
     // Αν το είδος δεν είναι νοικιασμένο ή προς ενοικίαση (rents.ret_date is empty)
     if (item.active_rents.length == 0) {
@@ -262,14 +261,14 @@ function Items({ items, setItems, nullItem, API }) {
     // Αν το είδος είναι νοικιασμένο
     var iIcon = "Μέχρι 📅 "
 
-    const iActiveRentDates = item.active_rents.map(ar => {
+    const iActiveRents = item.active_rents.map(ar => {
       if (isDatePast(ar.start_date)) {
         iIcon = "Όχι ❌ "
       }
-      return ar.customer_name + ": " + formatDateShort(ar.start_date) + "-" + formatDateShort(ar.end_date) + "\n"
+      return "<b>" + formatDateShort(ar.start_date) + "-" + formatDateShort(ar.end_date) + "</b>" + ": " + ar.customer_name
     })
 
-    return iIcon + "\n" + iActiveRentDates
+    return iIcon + "\n" + iActiveRents.join("\n")
   }
 
   /**
@@ -300,7 +299,7 @@ function Items({ items, setItems, nullItem, API }) {
 
       {/* Filter controls  */}
       {isCollapsiblePanelOpen && (
-        <div style={{ display: "flex", alignItems: "center", marginLeft: "5px" }}>
+        <div style={{ display: "flex", alignItems: "center", marginLeft: "5px", fontSize: "small" }}>
 
           {/* Toggle showAvailable filter */}
           <div style={{ flex: "1" }} >
@@ -354,19 +353,25 @@ function Items({ items, setItems, nullItem, API }) {
             <thead className="">
               <tr>
                 {/* Sortable column name */}
+                {/* Όνομασία */}
                 <th
                   className="sortable-column-header"
                   onClick={() => handleSortToggle("name")}
                 >
                   Όνομασία ({filteredItems.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
                 </th>
-                <th className="">Περιγραφή</th>
+
+                {/* Διαθέσιμο */}
                 <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("is_available")}
+                  className=""
                 >
-                  Διαθέσιμο {sortColumn === "is_available" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  Διαθέσιμο
                 </th>
+
+                {/* Σχόλια */}
+                <th className="">Σχόλια</th>
+
+
                 <th className="">Actions</th>
               </tr>
             </thead>
@@ -375,26 +380,21 @@ function Items({ items, setItems, nullItem, API }) {
             <tbody>
               {
                 // Filtered + Sorted items
-                filteredItems.map(item => (
+                sortedItems.map(item => (
                   <tr
                     key={item.id}
                     className={item.is_rented != 1 ? "active-row" : ""}
                   >
                     {/* Name */}
-                    <td>{item.name}</td>
+                    <td className="sortable-column-header" onClick={() => onEditClick(item)}>{item.name}</td>
+
+                    {/* Is Available */}
+                    <td style={{ textAlign: "center", whiteSpace: 'pre-wrap' }} >
+                      <div dangerouslySetInnerHTML={{ __html: getIsAvailable(item) }} />
+                    </td>
 
                     {/* Description */}
                     <td style={{ whiteSpace: "pre-wrap" }}>{item.description}</td>
-
-                    {/* Is Available */}
-                    {/* <td style={{ textAlign: "center" }} >
-                      {item.is_rented != 1 ? "Ναι ✅" : "Όχι ❌"}
-                    </td> */}
-
-                    <td style={{ textAlign: "center", whiteSpace: 'pre-wrap' }} >
-                      {getIsAvailable(item)}
-                    </td>
-
 
                     {/* Action buttons */}
                     <td>

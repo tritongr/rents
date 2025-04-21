@@ -23,7 +23,6 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
    * States
    */
 
-
   // Selected Customer object για single react-select dropdown {label: "Χρήστος", value: n}, ...}
   const [selectedCustomer, setSelectedCustomer] = useState({})
 
@@ -49,13 +48,12 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   const [showUnreturned, setShowUnreturned] = useState(false)
   const [showUnpaid, setShowUnpaid] = useState(false)
   const [showFutured, setShowFutured] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(false)
+  const [showNotCompleted, setShowNotCompleted] = useState(false)
 
-  const [showNotReturnedOnly, setShowNotReturnedOnly] = useState(false)
   const [searchText, setSearchText] = useState("")
-  const [sortColumn, setSortColumn] = useState(null)
+  const [sortColumn, setSortColumn] = useState("start_date")
   const [sortDirection, setSortDirection] = useState("asc")
-
-  console.log("items => ", items)
 
   /**
    *  Validation
@@ -264,26 +262,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   //   })
   //   .filter(rent => String(rent.notes).toLowerCase().includes(searchText.toLowerCase())) // notes search
 
-  // Sorting Λειτουργία
-  // const sortedRents = [...filteredRents].sort((a, b) => {
-  //   if (sortColumn === "name") {
-  //     return sortDirection === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
-  //   }
-  //   if (sortColumn === "is_active") {
-  //     return sortDirection === "asc" ? b.is_active - a.is_active : a.is_active - b.is_active
-  //   }
-  //   return 0
-  // });
 
-  // Εναλλαγή κατεύθυνσης sorting
-  function handleSortToggle(column) {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortColumn(column)
-      setSortDirection("asc")
-    }
-  }
 
   // Τα Items name από τον rented_items array 
   function getRentedItemsNames(rented_items) {
@@ -327,12 +306,58 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   /**
    * Filters
    */
-  const filteredRents = rents.filter((rent) => {
-    if (showUnreturned && (isValidDate(rent.ret_date) || !isDatePast(rent.end_date))) return false; // Αν θέλουμε μόνο μη επιστραμμένα
-    if (showUnpaid && (isValidDate(rent.paid_date) || !isDatePast(rent.end_date))) return false; // Αν θέλουμε μόνο ανεξόφλητα
-    if (showFutured && isDatePast(rent.start_date)) return false; // Αν θέλουμε μόνο μεννλοντικές ενοικιάσεις
-    return true;
-  })
+  // const filteredRents = rents.filter((rent) => {
+  //   if (showUnreturned && (isValidDate(rent.ret_date) || !isDatePast(rent.end_date))) return false; // Αν θέλουμε μόνο μη επιστραμμένα
+  //   if (showUnpaid && (isValidDate(rent.paid_date))) return false; // Αν θέλουμε μόνο ανεξόφλητα
+  //   if (showFutured && isDatePast(rent.start_date)) return false; // Αν θέλουμε μόνο μελλοντικές ενοικιάσεις
+  //   if (showCompleted && ((!isValidDate(rent.ret_date) || !isValidDate(rent.paid_date)))) return false; // Αν θέλουμε μόνο oλοκληρωμένες
+  //   if (showNotCompleted && ((isValidDate(rent.ret_date) && isValidDate(rent.paid_date)))) return false; // Αν θέλουμε μόνο μη 
+  //   //oλοκληρωμένες
+  //   if (rent.customer_name.toLowerCase().includes(searchText.toLowerCase())) return true
+  //   return true;
+  // })
+
+  // Φιλτράρισμα βάσει searchText και is_pending
+  const filteredRents = rents
+    .filter(r => !showUnreturned || (!isValidDate(r.ret_date) && isDatePast(r.end_date))) // Μη επιστραμμένα
+    .filter(r => !showUnpaid || !isValidDate(r.paid_date)) // Ανεξόφλητα
+    .filter(r => !showFutured || !isDatePast(r.start_date))  // Μελλοντικές
+    .filter(r => !showCompleted || (isValidDate(r.ret_date) && isValidDate(r.paid_date))) // Oλοκληρωμένες
+    .filter(r => !showNotCompleted || (!isValidDate(r.ret_date) && !isValidDate(r.paid_date))) // Μη ολοκληρωμένες
+    .filter(r => r.customer_name.toLowerCase().includes(searchText.toLowerCase()) || r.notes.toLowerCase().includes(searchText.toLowerCase()))
+
+  /**
+   * Sorting
+   */
+
+  const sortedRents = [...filteredRents].sort((a, b) => {
+    if (sortColumn === "customer_name") {
+      return sortDirection === "asc"
+        ? a.customer_name.localeCompare(b.customer_name)
+        : b.customer_name.localeCompare(a.customer_name);
+    }
+
+    if (sortColumn === "start_date") {
+      const dateA = new Date(a.start_date);
+      const dateB = new Date(b.start_date);
+
+      return sortDirection === "asc"
+        ? dateA - dateB
+        : dateB - dateA;
+    }
+
+    return 0;
+  });
+
+  // Εναλλαγή κατεύθυνσης sorting
+  function handleSortToggle(column) {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column)
+      setSortDirection("asc")
+    }
+  }
 
   /**
    *  Rendering
@@ -370,38 +395,79 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
       {/* Filter controls  */}
       {isCollapsiblePanelOpen && (
-        <div className="filters" style={{ marginBottom: '1em', fontSize: "small" }}>
+        <div style={{ display: "flex", fontSize: "small" }}>
 
-          {/* Unreturned */}
-          <label style={{ marginRight: '1em' }}>
-            <input
-              type="checkbox"
-              checked={showUnreturned}
-              onChange={() => { setShowUnreturned(!showUnreturned); setShowUnpaid(false); setShowFutured(false) }}
-            />
-            {' '}Δεν επεστράφησαν
-          </label>
+          <div style={{ flex: "5" }} >
+            {/* Unreturned */}
+            <label style={{ marginRight: '1em' }}>
+              <input
+                type="checkbox"
+                checked={showUnreturned}
+                onChange={() => { setShowUnreturned(!showUnreturned); setShowUnpaid(false); setShowFutured(false); setShowCompleted(false) }}
+              />
+              {' '}Δεν επεστράφησαν
+            </label>
 
-          {/* Unpaid */}
-          <label style={{ marginRight: '1em' }}>
-            <input
-              type="checkbox"
-              checked={showUnpaid}
-              onChange={() => { setShowUnpaid(!showUnpaid); setShowUnreturned(false); setShowFutured(false) }}
-            />
-            {' '}Ανεξόφλητες
-          </label>
+            {/* Unpaid */}
+            <label style={{ marginRight: '1em' }}>
+              <input
+                type="checkbox"
+                checked={showUnpaid}
+                onChange={() => { setShowUnpaid(!showUnpaid); setShowUnreturned(false); setShowFutured(false); setShowCompleted(false) }}
+              />
+              {' '}Ανεξόφλητες
+            </label>
 
-          {/* Unpaid */}
-          <label>
+            {/* Futured */}
+            <label style={{ marginRight: '1em' }}>
+              <input
+                type="checkbox"
+                checked={showFutured}
+                onChange={() => { setShowFutured(!showFutured); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowNotCompleted(false) }}
+              />
+              {' '}Μελλοντικές
+            </label>
+
+            {/* Completed */}
+            <label style={{ marginRight: '1em' }}>
+              <input
+                type="checkbox"
+                checked={showCompleted}
+                onChange={() => { setShowCompleted(!showCompleted); setShowUnpaid(false); setShowUnreturned(false); setShowFutured(false); setShowNotCompleted(false) }}
+              />
+              {' '}Ολοκληρωμένες
+            </label>
+
+            {/* Not Completed */}
+            <label style={{ marginRight: '1em' }}>
+              <input
+                type="checkbox"
+                checked={showNotCompleted}
+                onChange={() => { setShowNotCompleted(!showNotCompleted); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowFutured(false) }}
+              />
+              {' '}Μη Ολοκληρωμένες
+            </label>
+          </div>
+
+          {/* Search rent input */}
+          <div style={{ flex: "4" }}>
             <input
-              type="checkbox"
-              checked={showFutured}
-              onChange={() => { setShowFutured(!showFutured); setShowUnpaid(false); setShowUnreturned(false) }}
+              type="text"
+              placeholder="🔍 Αναζήτηση ενοικίασης ..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="search-bar"
             />
-            {' '}Μελλοντικές
-          </label>
+            {searchText && (
+              <button className="button-clear" onClick={() => setSearchText("")}>
+                ✖
+              </button>
+            )}
+          </div>
         </div>)
+
+
+
       }
 
       {/* Ο Πίνακας */}
@@ -415,12 +481,21 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
                 {/* Sortable column name */}
                 <th
                   className="sortable-column-header"
-                  onClick={() => handleSortToggle("customerName")}
+                  onClick={() => handleSortToggle("customer_name")}
                 >
-                  Πελάτης ({filteredRents.length}) {sortColumn === "customerName" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  Πελάτης ({filteredRents.length}) {sortColumn === "customer_name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
                 </th>
                 <th className="">Είδη</th>
-                <th className="">Έναρξη</th>
+
+                {/* Sortable column έναρξη */}
+                <th
+                  className="sortable-column-header"
+                  onClick={() => handleSortToggle("start_date")}
+                >
+                  Έναρξη {sortColumn === "start_date" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                </th>
+
+
                 <th className="">Λήξη</th>
                 <th
                   className="sortable-column-header"
@@ -439,7 +514,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
             <tbody>
               {
                 // Filtered + Sorted rents //sortedRents.
-                filteredRents.map(rent => {
+                sortedRents.map(rent => {
                   // const rentCustomer = getRentCustomer(rent) // customer object (of current rent) 
                   const rentItems = getRentedItemsNames(rent.items) // items array of objects (of current rent)
                   return (
@@ -447,14 +522,22 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
                     // Data row
                     <tr
                       key={rent.id}
-                      className={rent.paid_date && rent.paid_date !== "0000-00-00" ? "active-row" : ""}
+                      className={isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? "active-row" : ""}
                     >
 
                       {/* Data Cells */}
                       {/* ---------- */}
 
                       {/* Renter's customer name */}
-                      <td>{rent.id} - {rent.customer_name}</td>
+                      <td
+                        className="sortable-column-header"
+                        onClick={() => onEditClick(rent)}
+                        style={{ whiteSpace: "pre-wrap" }}
+                      >
+
+                        {rent.customer_name}
+
+                      </td>
 
                       {/* Items rented */}
                       <td>{rentItems}</td>

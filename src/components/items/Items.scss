@@ -35,6 +35,29 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
       text-align: center;
     }
 
+    th:nth-child(1),
+    td:nth-child(1) {
+      width: 20%;
+    }
+
+    th:nth-child(2),
+    td:nth-child(2) {
+      width: 30%;
+    }
+
+    th:nth-child(3),
+    td:nth-child(3) {
+      width: 25%;
+    }
+
+    th,
+    td {
+      width: auto;
+    }
+
+
+
+
     /* Κρύβουμε πεςριττές στήλες στα κινητά */
     // @media (max-width: 600px) {
 

@@ -6,6 +6,7 @@
  */
 
 import "./Customers.scss"
+import { isValidDate, isDatePast, formatDateShort, formatDateMidium } from "../../utilities/functionsLib"
 
 import React, { useState, useEffect, useRef } from "react"
 import axios from "axios"
@@ -16,7 +17,11 @@ import Confirm from "../utilities/Confirm"
 import CollapsibleHeader from "../utilities/CollapsibleHeader"          // Toggles a panel (show/hide)
 import { CustomerModal } from "./CustomerModal"                         // Modal form
 
-function Customers({ customers, setCustomers, nullCustomer, API }) {
+function Customers({ rents, items, customers, setCustomers, nullCustomer, API }) {
+
+  if (!customers || customers.length === 0) {
+    return <div>Loading...</div>;
+  }
 
   /**
    * States
@@ -38,16 +43,21 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
   const [isNewCustomer, setIsNewCustomer] = useState(true);
 
   // Sorting & filtering
-  const [showActiveOnly, setShowActiveOnly] = useState(false)
+  const [showPendingOnly, setShowPendingOnly] = useState(false)
+  const [showNoPaidOnly, setShowNoPaidOnly] = useState(false)
+  const [showNoRetOnly, setShowNoRetOnly] = useState(false)
   const [searchText, setSearchText] = useState("")
-  const [sortColumn, setSortColumn] = useState(null)
+  const [sortColumn, setSortColumn] = useState("name")
   const [sortDirection, setSortDirection] = useState("asc")
+
+  const [expandedCustomerIds, setExpandedCustomerIds] = useState([]);
 
   /** 
      * New record
     */
 
   // New button clicked
+
   function onAddClick() {
     setEditingCustomer(nullCustomer)
     setIsNewCustomer(true)
@@ -187,18 +197,17 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
    * Sorting & Filtering
    */
 
-  // Φιλτράρισμα βάσει searchText και Active Filter
+  // Φιλτράρισμα βάσει searchText και is_pending
   const filteredCustomers = customers
-    .filter(customer => !showActiveOnly || customer.is_active == 1) // is_active filter
-    .filter(customer => customer.name.toLowerCase().includes(searchText.toLowerCase())) // name search
+    .filter(c => !showPendingOnly || c.is_pending == 1)
+    .filter(c => !showNoRetOnly || c.no_returned == 1)
+    .filter(c => !showNoPaidOnly || c.no_paid == 1)
+    .filter(c => c.name.toLowerCase().includes(searchText.toLowerCase()))
 
   // Sorting Λειτουργία
   const sortedCustomers = [...filteredCustomers].sort((a, b) => {
     if (sortColumn === "name") {
       return sortDirection === "asc" ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
-    }
-    if (sortColumn === "is_active") {
-      return sortDirection === "asc" ? b.is_active - a.is_active : a.is_active - b.is_active
     }
 
     return 0
@@ -212,6 +221,116 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
       setSortColumn(column);
       setSortDirection("asc");
     }
+  }
+
+
+  // Customer icons
+  function getCustomerIcons(customer) {
+
+    var icons = ""
+
+    if (customer.is_pending != 1) {
+      return "✅"
+    }
+    if (customer.no_returned == 1) {
+      icons = "📺"
+    }
+    if (customer.no_paid == 1) {
+      icons = icons + "💲"
+    }
+
+    return icons
+  }
+
+  // Rent icons
+  function getRentIcons(rent, customer) {
+
+    var icon = ""
+
+    if (customer.is_pending != 1) {
+      return "✅"
+    }
+
+    // 📅❌
+
+    if (isDatePast(rent.end_date)) {
+      icon = "❌"
+    } else {
+      icon = "📅"
+    }
+    return icon + getCustomerIcons(customer)
+  }
+
+
+  // Is pending column
+  function getIsPending(customer) {
+
+
+    // ΝΟΤΕ: active rent είναι αυτή με κενή ret_date
+    //       δλδ o πελάτης δεν έχει ανεπίστρεπτα = έχει επιστρέψει τον εξοπλισμό
+    // ========================================================================
+
+    // Αν δεν εκκρεμεί ο πελάτης (ret_date και paid_date συμπληρωμένες)
+    if (customer.is_pending != 1) {
+      return "Όχι ✅"
+    }
+
+    var parcelIcon = ""
+    var dollarIcon = ""
+    var statusIcon = ""
+
+    // Άν ο πελάτης δεν έχει εκκρεμείς ενοικιάσεις (έχει επιστρέψει τον εξοπλισμό)
+    // τότε μόνο χρωστάει. Όλες οι ret_dates στα rents του είναι συμπληρωμένες.
+    if (customer.active_rents.length = 0) {
+      return "Ναι ❌💲"
+    }
+
+    // Αν δεν επέστρεψε εξοπλισμό
+    if (customer.no_returned == 1) {
+      parcelIcon = "📺" // 📦
+    }
+
+    // Αν δεν πλήρωσε
+    if (customer.no_paid == 1) {
+      dollarIcon = "💲"
+    }
+
+    return "Ναι " + parcelIcon + dollarIcon
+
+    statusIcon = "Ναι 📅 "
+
+    const cActiveRents = customer.active_rents.map(ar => {
+      console.log("customer: ", customer)
+      if (isDatePast(ar.end_date) && customer.nopaid == 1) {
+        statusIcon = "Ναι ❌ "
+      }
+      const items = ar.items.map(i => i.name)
+      return "<b>" + formatDateShort(ar.start_date) + "-" + formatDateShort(ar.end_date) + "</b>" + ": " + items
+    })
+
+    return statusIcon + parcelIcon + dollarIcon + "\n" + cActiveRents.join("\n")
+  }
+
+  // Expand customer's rents 
+  function toggleExpandedCustomer(customerId) {
+    setExpandedCustomerIds(prev =>
+      prev.includes(customerId)
+        ? prev.filter(id => id !== customerId)
+        : [...prev, customerId]
+    );
+  }
+
+  // Τα Items names από τον rented_items array 
+  function getRentedItemsNames(items_ids) {
+
+    const itemNames = items_ids.map((iId) => {
+      const item = items.find((i) => i.id == iId);
+      return item ? item.name : 'Άγνωστο είδος';
+    });
+
+    return itemNames.map((name, index) => (
+      <div key={index}>{name}</div>
+    ));
   }
 
   /**
@@ -242,19 +361,43 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
 
       {/* Filter controls  */}
       {isCollapsiblePanelOpen && (
-        <div style={{ display: "flex", alignItems: "center", marginLeft: "5px" }}>
+        <div style={{ display: "flex", alignItems: "center", marginLeft: "5px", fontSize: "small" }}>
 
-          {/* Toggle showActive filter */}
-          <div style={{ flex: "1" }} >
-            <label className="active-filter" style={{ whiteSpace: "nowrap" }} >
+          {/* Filters checkboxes */}
+          <div>
+
+            {/* is_pending */}
+            <label style={{ marginRight: '1em' }} >
               <input
                 type="checkbox"
-                checked={showActiveOnly}
-                onChange={() => setShowActiveOnly(!showActiveOnly)}
+                checked={showPendingOnly}
+                onChange={() => { setShowPendingOnly(!showPendingOnly); setShowNoPaidOnly(false); setShowNoRetOnly(false); }}
               />
-              &nbsp;Ενεργοί &nbsp;&nbsp;
+              {' '}Εκκρεμείς
             </label>
+
+            {/* no_returned */}
+            <label style={{ marginRight: '1em' }}>
+              <input
+                type="checkbox"
+                checked={showNoRetOnly}
+                onChange={() => { setShowNoRetOnly(!showNoRetOnly); setShowNoPaidOnly(false); setShowPendingOnly(false) }}
+              />
+              {' '}Δεν επέστρεψαν
+            </label>
+
+            {/* no_paid */}
+            <label style={{ marginRight: '1em' }}>
+              <input
+                type="checkbox"
+                checked={showNoPaidOnly}
+                onChange={() => { setShowNoPaidOnly(!showNoPaidOnly); setShowNoRetOnly(false); setShowPendingOnly(false) }}
+              />
+              {' '}Δεν πλήρωσαν
+            </label>
+
           </div>
+
 
           {/* Search customer input */}
           <div style={{ flex: "5" }}>
@@ -290,6 +433,7 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
                 >
                   Όνομα ({sortedCustomers.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
                 </th>
+                <th className="">Επικοινωνία</th>
                 <th className="">Σχόλια</th>
                 <th
                   className="sortable-column-header"
@@ -303,27 +447,42 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
 
             {/* Table data */}
             <tbody>
-              {
-                // Filtered + Sorted customers
-                sortedCustomers.map(customer => (
-                  <tr
-                    key={customer.id}
-                    className={customer.is_pending == 1 ? "pending-row" : ""}
-                  >
+              {sortedCustomers.map(customer => (
+                <React.Fragment key={customer.id}>
+                  <tr className={customer.is_pending == 1 ? "pending-row" : ""}>
                     {/* Name */}
-                    <td>{customer.name}</td>
+                    <td onClick={() => onEditClick(customer)}>{customer.name}</td>
+
+                    {/* Phone */}
+                    <td style={{ whiteSpace: "pre-wrap" }}>{customer.phone}</td>
+
                     {/* Notes */}
                     <td style={{ whiteSpace: "pre-wrap" }}>{customer.notes}</td>
-                    {/* Active */}
-                    <td style={{ textAlign: "center" }} >
-                      {customer.is_pending == 1 ? "Ναι ✅" : "Όχι ❌"}
+
+                    {/* Is pending */}
+                    <td style={{ textAlign: "center", whiteSpace: 'pre-wrap' }}>
+                      <div dangerouslySetInnerHTML={{ __html: getIsPending(customer) }} />
                     </td>
-                    {/* Action buttons */}
+
+                    {/* Actions */}
                     <td>
-                      <div id="action-buttons">
+                      <div className="action-buttons">
+
+                        {/* Expand Rents */}
+                        <button
+                          title="Ιστορικό ενοικιάσεων πελάτη"
+                          className="button-save"
+                          onClick={() => toggleExpandedCustomer(customer.id)}
+                        >
+                          <span className={`dashicons ${expandedCustomerIds.includes(customer.id)
+                            ? "dashicons-arrow-up-alt2"
+                            : "dashicons-arrow-down-alt2"
+                            }`}></span>
+                        </button>
+
                         {/* Edit button */}
                         <button
-                          title="Επεξεργασία γραμμής"
+                          title="Επεξεργασία"
                           className="button-edit"
                           onClick={() => onEditClick(customer)}
                           style={{ marginRight: 7 }}
@@ -331,18 +490,62 @@ function Customers({ customers, setCustomers, nullCustomer, API }) {
                           <span className="dashicons dashicons-edit"></span>
                         </button>
 
-                        {/* Delete button */}
+                        {/* Delete */}
                         <button
-                          title="Διαγραφή γραμμής"
+                          title="Διαγραφή"
                           className="button-delete"
                           onClick={() => onDeleteClick(customer)}
-                        >
+                          style={{ marginRight: 7 }}>
                           <span class="dashicons dashicons-trash"></span>
                         </button>
+
                       </div>
                     </td>
-                  </tr>))
-              }
+                  </tr>
+
+                  {/* Expanded rents row */}
+                  {expandedCustomerIds.includes(customer.id) && (
+                    <tr className="expanded-row">
+                      <td colSpan={5}>
+                        <div className="expanded-container">
+                          <h4 style={{ marginBottom: 10 }}>
+                            Ιστορικό ενοικιάσεων <strong>{customer.name}</strong> {getCustomerIcons(customer)}
+                          </h4>
+                          <table className="expanded-rents-table">
+                            <thead>
+                              <tr>
+                                {/* Empty first column just for spacing */}
+                                <th style={{ width: "5%" }}></th>
+                                <th style={{ textAlign: "center" }} >Εξοπλισμός</th>
+                                <th style={{ textAlign: "center" }} >Έναρξη</th>
+                                <th style={{ textAlign: "center" }} >Λήξη</th>
+                                <th style={{ textAlign: "center" }} >Επιστροφή</th>
+                                <th style={{ textAlign: "center" }} >Πληρωμή</th>
+                                <th style={{ textAlign: "center" }}>Παρατηρήσεις</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rents
+                                .filter(r => r.customer_id === customer.id)
+                                .map((rent, index) => (
+                                  <tr key={index}>
+                                    <td>{getRentIcons(rent, customer)} </td> {/* empty spacing cell */}
+                                    <td>{getRentedItemsNames(rent.items)}</td>
+                                    <td style={{ textAlign: "center" }} >{formatDateMidium(rent.start_date)}</td>
+                                    <td style={{ textAlign: "center" }} >{formatDateMidium(rent.end_date)}</td>
+                                    <td style={{ textAlign: "center" }} >{isValidDate(rent.ret_date) ? formatDateMidium(rent.ret_date) : "-"}</td>
+                                    <td style={{ textAlign: "center" }} >{isValidDate(rent.paid_date) ? formatDateMidium(rent.paid_date) : "-"}</td>
+                                    <td style={{ textAlign: "center" }} >{rent.notes}</td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
             </tbody>
           </table>
         )

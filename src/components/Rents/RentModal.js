@@ -137,7 +137,7 @@ export function RentModal({
         iLabel = i.name
       }
 
-      return { label: iLabel, value: parseInt(i.id), isDisabled: isDisabled }
+      return { label: iLabel, value: parseInt(i.id) }
 
       //return ({ label: (i.is_rented == 1 ? "❌ " : "") + i.name, value: parseInt(i.id) }))
     }

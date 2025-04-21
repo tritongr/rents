@@ -149,8 +149,423 @@ add_action('rest_api_init', function () {
 /**
  * GET all customers
  */
-
 function get_all_customers()
+{
+  global $wpdb;
+
+  try {
+    $tableCustomers = $wpdb->prefix . 'rent_customers';
+    $tableRents = $wpdb->prefix . 'rent_rents';
+    $tableItems = $wpdb->prefix . 'rent_items';
+    $tableRentedItems = $wpdb->prefix . 'rent_rented_items';
+
+    // Βήμα 1: Φέρνουμε όλους τους πελάτες μαζί με flags: is_pending, no_paid, no_returned
+    $allCustomers = $wpdb->get_results(
+      "
+      SELECT 
+        c.*, 
+
+        EXISTS (
+          SELECT 1 
+          FROM $tableRents r 
+          WHERE r.customer_id = c.id 
+            AND (
+              r.ret_date IS NULL OR r.ret_date = '0000-00-00' OR 
+              r.paid_date IS NULL OR r.paid_date = '0000-00-00'
+            )
+          LIMIT 1
+        ) AS is_pending,
+
+        EXISTS (
+          SELECT 1
+          FROM $tableRents r
+          WHERE r.customer_id = c.id 
+            AND (r.paid_date IS NULL OR r.paid_date = '0000-00-00')
+          LIMIT 1
+        ) AS no_paid,
+
+        EXISTS (
+          SELECT 1
+          FROM $tableRents r
+          WHERE r.customer_id = c.id 
+            AND (r.ret_date IS NULL OR r.ret_date = '0000-00-00')
+          LIMIT 1
+        ) AS no_returned
+
+      FROM $tableCustomers c
+      ORDER BY c.name ASC
+      ",
+      ARRAY_A
+    );
+
+    // Βήμα 2: Παίρνουμε όλες τις ενεργές ενοικιάσεις με τα rented items
+    $active_rents = $wpdb->get_results(
+      "
+      SELECT 
+        r.id AS rent_id,
+        r.customer_id,
+        r.start_date,
+        r.end_date,
+        i.id AS item_id,
+        i.name AS item_name
+      FROM $tableRents r
+      INNER JOIN $tableRentedItems ri ON ri.rent_id = r.id
+      INNER JOIN $tableItems i ON i.id = ri.item_id
+      WHERE r.ret_date IS NULL OR r.ret_date = '0000-00-00'
+      ",
+      ARRAY_A
+    );
+
+    // error_log("active_rents count: " . print_r($active_rents, true));
+
+    // Ομαδοποιούμε τα rents ανά customer + items σε κάθε rent
+    $rents_grouped = [];
+    foreach ($active_rents as $row) {
+      $customer_id = $row['customer_id'];
+      $rent_id = $row['rent_id'];
+
+      if (!isset($rents_grouped[$customer_id])) {
+        $rents_grouped[$customer_id] = [];
+      }
+
+      if (!isset($rents_grouped[$customer_id][$rent_id])) {
+        $rents_grouped[$customer_id][$rent_id] = [
+          'id' => intval($rent_id),
+          'start_date' => $row['start_date'],
+          'end_date' => $row['end_date'],
+          // 'items' => [],
+        ];
+      }
+
+      // $rents_grouped[$customer_id][$rent_id]['items'][] = [
+      //   'id' => intval($row['item_id']),
+      //   'name' => $row['item_name'],
+      // ];
+    }
+
+    // error_log("rents_grouped : " . print_r($rents_grouped, true));
+
+    // Βήμα 3: Εμπλουτίζουμε τους πελάτες με τα active_rents
+    foreach ($allCustomers as &$customer) {
+      $cid = $customer['id'];
+      $customer['is_pending'] = boolval($customer['is_pending']);
+      $customer['no_paid'] = boolval($customer['no_paid']);
+      $customer['no_returned'] = boolval($customer['no_returned']);
+      $customer['active_rents'] = array_values($rents_grouped[$cid] ?? []);
+    }
+
+    error_log("all_customers : " . print_r($allCustomers, true));
+
+    return new WP_REST_Response($allCustomers, 200);
+  } catch (Exception $e) {
+    return new WP_REST_Response(['error' => $e->getMessage()], 500);
+  }
+}
+
+function get_all_customers_new()
+{
+  global $wpdb;
+
+  try {
+    $tableCustomers = $wpdb->prefix . 'rent_customers';
+    $tableRents = $wpdb->prefix . 'rent_rents';
+    $tableItems = $wpdb->prefix . 'rent_items';
+    $tableRentedItems = $wpdb->prefix . 'rent_rented_items';
+
+    // Βήμα 1: Φέρνουμε όλους τους πελάτες μαζί με flags: is_pending, no_paid, no_returned
+    $allCustomers = $wpdb->get_results(
+      "
+       SELECT 
+         c.*, 
+ 
+         EXISTS (
+           SELECT 1 
+           FROM $tableRents r 
+           WHERE r.customer_id = c.id 
+             AND (
+               r.ret_date IS NULL OR r.ret_date = '0000-00-00' OR 
+               r.paid_date IS NULL OR r.paid_date = '0000-00-00'
+             )
+           LIMIT 1
+         ) AS is_pending,
+ 
+         EXISTS (
+           SELECT 1
+           FROM $tableRents r
+           WHERE r.customer_id = c.id 
+             AND (r.paid_date IS NULL OR r.paid_date = '0000-00-00')
+           LIMIT 1
+         ) AS no_paid,
+ 
+         EXISTS (
+           SELECT 1
+           FROM $tableRents r
+           WHERE r.customer_id = c.id 
+             AND (r.ret_date IS NULL OR r.ret_date = '0000-00-00')
+           LIMIT 1
+         ) AS no_returned
+ 
+       FROM $tableCustomers c
+       ORDER BY c.name ASC
+       ",
+      ARRAY_A
+    );
+
+    // Βήμα 2: Παίρνουμε όλες τις ενεργές ενοικιάσεις με τα rented items
+    $active_rents = $wpdb->get_results(
+      "
+       SELECT 
+         r.id AS rent_id,
+         r.customer_id,
+         r.start_date,
+         r.end_date,
+         i.id AS item_id,
+         i.name AS item_name
+       FROM $tableRents r
+       INNER JOIN $tableRentedItems ri ON ri.rent_id = r.id
+       INNER JOIN $tableItems i ON i.id = ri.item_id
+       WHERE r.ret_date IS NULL OR r.ret_date = '0000-00-00'
+       ",
+      ARRAY_A
+    );
+
+    // Ομαδοποιούμε τα rents ανά customer + items σε κάθε rent
+    $rents_grouped = [];
+    foreach ($active_rents as $row) {
+      $customer_id = $row['customer_id'];
+      $rent_id = $row['rent_id'];
+
+      // Initialize του $rents_grouped που θα μαζέψει τα rents για κάθε customer
+      if (!isset($rents_grouped[$customer_id])) {
+        $rents_grouped[$customer_id] = [];
+      }
+
+      // Aν δν υπάρχει στο group 
+      if (!isset($rents_grouped[$customer_id][$rent_id])) {
+        $rents_grouped[$customer_id][$rent_id] = [
+          'id' => intval($rent_id),
+          'start_date' => $row['start_date'],
+          'end_date' => $row['end_date'],
+          'items' => [],
+        ];
+      }
+
+      $rents_grouped[$customer_id][$rent_id]['items'][] = [
+        'id' => intval($row['item_id']),
+        'name' => $row['item_name'],
+      ];
+    }
+
+    // Βήμα 3: Εμπλουτίζουμε τους πελάτες με τα active_rents
+    foreach ($allCustomers as &$customer) {
+      $cid = $customer['id'];
+      $customer['is_pending'] = boolval($customer['is_pending']);
+      $customer['no_paid'] = boolval($customer['no_paid']);
+      $customer['no_returned'] = boolval($customer['no_returned']);
+      $customer['active_rents'] = array_values($rents_grouped[$cid] ?? []);
+    }
+
+    return new WP_REST_Response($allCustomers, 200);
+  } catch (Exception $e) {
+    return new WP_REST_Response(['error' => $e->getMessage()], 500);
+  }
+}
+
+function get_all_customers_bkp2()
+{
+  global $wpdb;
+
+  try {
+    $tableCustomers = $wpdb->prefix . 'rent_customers';
+    $tableRents = $wpdb->prefix . 'rent_rents';
+    $tableItems = $wpdb->prefix . 'rent_items';
+    $tableRentedItems = $wpdb->prefix . 'rent_rented_items';
+
+    // Βήμα 1: Φέρνουμε όλους τους πελάτες μαζί με is_pending, no_paid, no_returned flag
+    $allCustomers = $wpdb->get_results(
+      "
+      SELECT 
+        c.*, 
+    
+        -- Έστω ότι η ενοικίαση είναι *εκκρεμής* (είτε unpaid είτε unreturned)
+        EXISTS (
+          SELECT 1 
+          FROM $tableRents r 
+          WHERE r.customer_id = c.id 
+            AND (
+              r.ret_date IS NULL OR r.ret_date = '0000-00-00' OR 
+              r.paid_date IS NULL OR r.paid_date = '0000-00-00'
+            )
+          LIMIT 1
+        ) AS is_pending,
+    
+        -- Έχει τουλάχιστον μία unpaid rent
+        EXISTS (
+          SELECT 1
+          FROM $tableRents r
+          WHERE r.customer_id = c.id 
+            AND (r.paid_date IS NULL OR r.paid_date = '0000-00-00')
+          LIMIT 1
+        ) AS no_paid,
+    
+        -- Έχει τουλάχιστον μία unreturned rent
+        EXISTS (
+          SELECT 1
+          FROM $tableRents r
+          WHERE r.customer_id = c.id 
+            AND (r.ret_date IS NULL OR r.ret_date = '0000-00-00')
+          LIMIT 1
+        ) AS no_returned
+    
+      FROM $tableCustomers c
+      ORDER BY c.name ASC
+      ",
+      ARRAY_A
+    );
+
+    // Βήμα 2: Παίρνουμε όλα τα ενεργά rents με τα rented items
+    $active_rents = $wpdb->get_results(
+      "
+       SELECT 
+         r.id AS rent_id,
+         r.customer_id,
+         r.start_date,
+         r.end_date,
+         i.id AS item_id,
+         i.name AS item_name
+       FROM $tableRents r
+       INNER JOIN $tableRentedItems ri ON ri.rent_id = r.id
+       INNER JOIN $tableItems i ON i.id = ri.item_id
+       WHERE r.ret_date IS NULL OR r.ret_date = '0000-00-00'
+       ",
+      ARRAY_A
+    );
+
+    // Ομαδοποιούμε τα rents ανά customer + items σε κάθε rent
+    $rents_grouped = [];
+    foreach ($active_rents as $row) {
+      $customer_id = $row['customer_id'];
+      $rent_id = $row['rent_id'];
+
+      if (!isset($rents_grouped[$customer_id])) {
+        $rents_grouped[$customer_id] = [];
+      }
+
+      // Αν το συγκεκριμένο rent δεν έχει προστεθεί ακόμα, το ξεκινάμε
+      if (!isset($rents_grouped[$customer_id][$rent_id])) {
+        $rents_grouped[$customer_id][$rent_id] = [
+          'id' => intval($rent_id),
+          'start_date' => $row['start_date'],
+          'end_date' => $row['end_date'],
+          'items' => [],
+        ];
+      }
+
+      // Προσθέτουμε το item σε αυτό το rent
+      $rents_grouped[$customer_id][$rent_id]['items'][] = [
+        'id' => intval($row['item_id']),
+        'name' => $row['item_name'],
+      ];
+    }
+
+    // Βήμα 3: Εμπλουτίζουμε τους πελάτες με τα active_rents
+    foreach ($allCustomers as &$customer) {
+      $cid = $customer['id'];
+      $customer['active_rents'] = array_values($rents_grouped[$cid] ?? []);
+    }
+
+    return new WP_REST_Response($allCustomers, 200);
+  } catch (Exception $e) {
+    return new WP_REST_Response(['error' => $e->getMessage()], 500);
+  }
+}
+
+function get_all_customers_bkp1()
+{
+  global $wpdb;
+
+  try {
+    $tableCustomers = $wpdb->prefix . 'rent_customers';
+    $tableRents = $wpdb->prefix . 'rent_rents';
+    $tableItems = $wpdb->prefix . 'rent_items';
+    $tableRentedItems = $wpdb->prefix . 'rent_rented_items';
+
+    // Βήμα 1: Φέρνουμε όλους τους πελάτες μαζί με is_pending flag
+    $allCustomers = $wpdb->get_results(
+      "
+      SELECT 
+        c.*, 
+        EXISTS (
+          SELECT 1 
+          FROM $tableRents r 
+          WHERE r.customer_id = c.id 
+            AND (r.ret_date IS NULL OR r.ret_date = '0000-00-00' OR r.paid_date IS NULL OR r.paid_date = '0000-00-00')
+          LIMIT 1
+        ) AS is_pending
+      FROM $tableCustomers c
+      ORDER BY c.name ASC
+      ",
+      ARRAY_A
+    );
+
+    // Βήμα 2: Παίρνουμε όλα τα ενεργά rents με τα rented items
+    $active_rents = $wpdb->get_results(
+      "
+      SELECT 
+        r.id AS rent_id,
+        r.customer_id,
+        r.start_date,
+        r.end_date,
+        i.id AS item_id,
+        i.name AS item_name
+      FROM $tableRents r
+      INNER JOIN $tableRentedItems ri ON ri.rent_id = r.id
+      INNER JOIN $tableItems i ON i.id = ri.item_id
+      WHERE r.ret_date IS NULL OR r.ret_date = '0000-00-00'
+      ",
+      ARRAY_A
+    );
+
+    // Ομαδοποιούμε τα rents ανά customer + items σε κάθε rent
+    $rents_grouped = [];
+    foreach ($active_rents as $row) {
+      $customer_id = $row['customer_id'];
+      $rent_id = $row['rent_id'];
+
+      if (!isset($rents_grouped[$customer_id])) {
+        $rents_grouped[$customer_id] = [];
+      }
+
+      // Αν το συγκεκριμένο rent δεν έχει προστεθεί ακόμα, το ξεκινάμε
+      if (!isset($rents_grouped[$customer_id][$rent_id])) {
+        $rents_grouped[$customer_id][$rent_id] = [
+          'id' => intval($rent_id),
+          'start_date' => $row['start_date'],
+          'end_date' => $row['end_date'],
+          'items' => [],
+        ];
+      }
+
+      // Προσθέτουμε το item σε αυτό το rent
+      $rents_grouped[$customer_id][$rent_id]['items'][] = [
+        'id' => intval($row['item_id']),
+        'name' => $row['item_name'],
+      ];
+    }
+
+    // Βήμα 3: Εμπλουτίζουμε τους πελάτες με τα active_rents
+    foreach ($allCustomers as &$customer) {
+      $cid = $customer['id'];
+      $customer['active_rents'] = array_values($rents_grouped[$cid] ?? []);
+    }
+
+    return new WP_REST_Response($allCustomers, 200);
+  } catch (Exception $e) {
+    return new WP_REST_Response(['error' => $e->getMessage()], 500);
+  }
+}
+
+function get_all_customers_old()
 {
   global $wpdb;
 
@@ -158,6 +573,9 @@ function get_all_customers()
 
     $tableCustomers = $wpdb->prefix . 'rent_customers';
     $tableRents = $wpdb->prefix . 'rent_rents';
+
+    $tableItems = $wpdb->prefix . 'rent_items';
+    $tableRentedItems = $wpdb->prefix . 'rent_rented_items';
 
     // $allCustomers = $wpdb->get_results("SELECT * FROM $tableCustomers ORDER BY name ASC");
     $allCustomers = $wpdb->get_results(
@@ -202,6 +620,7 @@ function create_customer(WP_REST_Request $request)
 
     // Τα fields του νέου record που στάλθηκαν
     $name = sanitize_textarea_field($customer["name"]);
+    $phone = sanitize_textarea_field($customer["phone"]);
     $notes = sanitize_textarea_field($customer["notes"]);
 
     // Validation των fields
@@ -214,6 +633,7 @@ function create_customer(WP_REST_Request $request)
       $tableCustomers,
       [
         'name' => $name,
+        'phone' => $phone,
         'notes' => $notes
       ]
     );
@@ -251,6 +671,7 @@ function update_customer(WP_REST_Request $request)
     // Τα fields που στάλθηκαν
     $id = (int) $customer['id'];
     $name = sanitize_textarea_field($customer["name"]);
+    $phone = sanitize_textarea_field($customer["phone"]);
     $notes = sanitize_textarea_field($customer["notes"]);
 
     if (empty($name)) {
@@ -262,6 +683,7 @@ function update_customer(WP_REST_Request $request)
       $table,
       [
         'name' => $name,
+        'phone' => $phone,
         'notes' => $notes,
       ],
       ['id' => $id], // where
@@ -403,7 +825,6 @@ function get_all_items(WP_REST_Request $request)
 
   return new WP_REST_Response($all_items, 200);
 }
-
 
 function get_all_items_bkp3(WP_REST_Request $request)
 {
@@ -727,13 +1148,8 @@ function delete_item(WP_REST_Request $request)
 
 function rentValidRecord($rent)
 {
-  if (empty($rent['customer_id']) or (int)$rent['customer_id'] == 0):
-    error_log("customer is empty ");
-  endif;
-
   // Έλεγχος: empty start_date, end_date
   if (empty($rent['start_date']) or empty($rent['end_date']) or strtotime($rent['start_date']) == '0000-00-00' or strtotime($rent['end_date']) == '0000-00-00') :
-    error_log("start_date is empty " . print_r($rent['start_date'], true));
     return new WP_REST_Response(['error' => 'Η ημερομηνίες έναρξης & λήξης είναι υποχρεωτικές.'], 500);
   endif;
 
@@ -875,9 +1291,6 @@ function update_rent($request)
       'paid_date' => $rent['paid_date'],
       'notes' => $rent['notes']
     ];
-
-    error_log("editRecord: " . print_r($editRecord, true));
-    error_log("id: " . print_r($id, true));
 
     // Προσπάθεια update
     $affected = $wpdb->update($tableRents, $editRecord, ['id' => $id]);

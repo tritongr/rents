@@ -18,6 +18,8 @@ export function CustomerModal({
   isNewCustomer
 }) {
 
+
+  console.log("editing cusromer", editingCustomer)
   /**
    * States
    */
@@ -60,6 +62,12 @@ export function CustomerModal({
             value={editingCustomer.name}
             onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
             placeholder="Εισάγετε όνομα"
+          />
+          <input
+            type="text"
+            value={editingCustomer.phone}
+            onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
+            placeholder="Τηλέφωνο, επικοινωνία κλπ."
           />
           <textarea
             value={editingCustomer.notes}

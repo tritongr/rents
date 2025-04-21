@@ -35,6 +35,31 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
       }
     }
 
+    th:nth-child(1),
+    td:nth-child(1) {
+      width: 20%;
+    }
+
+    th:nth-child(2),
+    td:nth-child(2) {
+      width: 12%;
+    }
+
+    th:nth-child(7),
+    td:nth-child(7) {
+      width: 20%;
+    }
+
+    th:nth-child(8),
+    td:nth-child(8) {
+      width: 12%;
+    }
+
+    th,
+    td {
+      width: auto;
+    }
+
     th {
       text-align: center;
     }

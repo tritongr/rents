@@ -41,3 +41,20 @@ export function formatDateShort(dateStr) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   return `${day}/${month}`;
 };
+
+
+export // Dates conversion to DD/MM/YY
+  function formatDateMidium(dateStr) {
+  if (!isValidDate(dateStr)) return "";
+
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) {
+    return 'Invalid Date Format';
+  }
+
+  const year = parts[0].slice(2); // Παίρνουμε τα δύο τελευταία ψηφία του έτους
+  const month = parts[1];
+  const day = parts[2];
+
+  return `${day}/${month}/${year}`;
+}
