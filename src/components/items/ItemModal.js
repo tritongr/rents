@@ -45,7 +45,13 @@ export function ItemModal({
     <div className='modal-wraper modal-overlay'>
 
       {/* Content wraper */}
-      <div className="modal-content">
+      <div
+        className="modal-content"
+        style={{
+          overflowY: "auto", // 👈 περιορισμός ύψους
+          maxHeight: "90vh" // 👈 scrollbar όταν χρειάζεται
+        }}
+      >
 
         {/* Header */}
         <div className="modal-header">
@@ -65,7 +71,7 @@ export function ItemModal({
             value={editingItem.description}
             onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
             placeholder="Εισάγετε περιγραφή"
-            rows="3"
+            rows="5"
           />
         </div>
 

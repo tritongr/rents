@@ -17,9 +17,8 @@ export function CustomerModal({
   onSaveNew,
   isNewCustomer
 }) {
+  // console.log("editing cusromer", editingCustomer)
 
-
-  console.log("editing cusromer", editingCustomer)
   /**
    * States
    */
@@ -47,7 +46,14 @@ export function CustomerModal({
     <div className='modal-wraper modal-overlay'>
 
       {/* Content wraper */}
-      <div className="modal-content">
+      <div
+        className="modal-content"
+        style={{
+          overflowY: "auto", // 👈 περιορισμός ύψους
+          maxHeight: "90vh" // 👈 scrollbar όταν χρειάζεται
+        }}
+
+      >
 
         {/* Header */}
         <div className="modal-header">
@@ -63,17 +69,16 @@ export function CustomerModal({
             onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
             placeholder="Εισάγετε όνομα"
           />
-          <input
-            type="text"
+          <textarea
             value={editingCustomer.phone}
             onChange={(e) => setEditingCustomer({ ...editingCustomer, phone: e.target.value })}
-            placeholder="Τηλέφωνο, επικοινωνία κλπ."
+            placeholder="Τηλέφωνο, email κλπ."
           />
           <textarea
             value={editingCustomer.notes}
             onChange={(e) => setEditingCustomer({ ...editingCustomer, notes: e.target.value })}
             placeholder="Σχόλια"
-            rows="3"
+            rows="5"
           />
         </div>
 

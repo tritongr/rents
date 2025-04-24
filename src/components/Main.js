@@ -27,6 +27,7 @@ function Main() {
     NONCE: rentsGlobal.nonce
   }
 
+
   // Load all customers 
   useEffect(loadAllCustomers, [rents])
   function loadAllCustomers() {
@@ -76,11 +77,6 @@ function Main() {
       .then(handleSuccess)
       .catch(handleError)
   }
-
-  useEffect(() => {
-    console.log("<Main />: customers UPDATED =>", customers);
-  }, [customers]);
-
 
   // Load all rents 
   useEffect(loadAllRents, [])
@@ -132,7 +128,7 @@ function Main() {
           },
           {
             name: "Items",
-            title: "Εξοπλισμός ",
+            title: "📺 Εξοπλισμός ",
             content: <Items
               items={items}
               setItems={setItems}

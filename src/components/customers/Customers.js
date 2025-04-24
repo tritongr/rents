@@ -311,6 +311,21 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
     return statusIcon + parcelIcon + dollarIcon + "\n" + cActiveRents.join("\n")
   }
 
+  /**
+   *  Expand/Collaps customers list
+   * 
+   */
+
+  // Global expand
+  const toggleAllCustomers = () => {
+    if (expandedCustomerIds.length === sortedCustomers.length) {
+      setExpandedCustomerIds([]);
+    } else {
+      setExpandedCustomerIds(sortedCustomers.map(c => c.id));
+    }
+  };
+
+
   // Expand customer's rents 
   function toggleExpandedCustomer(customerId) {
     setExpandedCustomerIds(prev =>
@@ -361,10 +376,28 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
 
       {/* Filter controls  */}
       {isCollapsiblePanelOpen && (
-        <div style={{ display: "flex", alignItems: "center", marginLeft: "5px", fontSize: "small" }}>
+        <div style={{ display: "flex", alignItems: "center", marginLeft: "0", fontSize: "small" }}>
 
           {/* Filters checkboxes */}
           <div>
+
+            {/* Global expand/collapse button */}
+            <button
+              onClick={toggleAllCustomers}
+              className="button-dash-icon-up"
+              title={
+                expandedCustomerIds.length === sortedCustomers.length
+                  ? "Απόκρυψη ιστορικών"
+                  : "Εμφάνιση ιστορικών"
+              }
+            >
+              <span
+                className={`dashicons ${expandedCustomerIds.length === sortedCustomers.length
+                  ? "dashicons-arrow-up-alt2"
+                  : "dashicons-arrow-down-alt2"
+                  }`}
+              ></span>
+            </button>
 
             {/* is_pending */}
             <label style={{ marginRight: '1em' }} >
@@ -448,10 +481,28 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
             {/* Table data */}
             <tbody>
               {sortedCustomers.map(customer => (
-                <React.Fragment key={customer.id}>
-                  <tr className={customer.is_pending == 1 ? "pending-row" : ""}>
+                <React.Fragment
+                  key={customer.id}
+                >
+                  <tr
+                    style={{ borderTop: "2px solid  #0073a8", borderRight: "2px solid  #0073a8", borderLeft: "2px solid  #0073a8" }}
+                    className={customer.is_pending == 1 ? "pending-row" : ""}>
+
                     {/* Name */}
-                    <td onClick={() => onEditClick(customer)}>{customer.name}</td>
+                    <td
+                      className="sortable-column-header"
+                      onClick={() => onEditClick(customer)}>
+                      {customer.name + " - "}
+
+                      <b>{customer.rents_count}</b>
+                      {customer.rents_pending_count > 0 ? "/" : ""}
+                      <span
+                        style={{ fontWeight: "bold", color: "red" }}
+                      >
+                        {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}
+                      </span>
+
+                    </td>
 
                     {/* Phone */}
                     <td style={{ whiteSpace: "pre-wrap" }}>{customer.phone}</td>
@@ -470,7 +521,11 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
 
                         {/* Expand Rents */}
                         <button
-                          title="Ιστορικό ενοικιάσεων πελάτη"
+                          title={
+                            expandedCustomerIds.includes(customer.id)
+                              ? "Απόκρυψη ιστορικού"
+                              : "Εμφάνιση ιστορικού"
+                          }
                           className="button-save"
                           onClick={() => toggleExpandedCustomer(customer.id)}
                         >
@@ -504,46 +559,74 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
                   </tr>
 
                   {/* Expanded rents row */}
-                  {expandedCustomerIds.includes(customer.id) && (
-                    <tr className="expanded-row">
-                      <td colSpan={5}>
-                        <div className="expanded-container">
-                          <h4 style={{ marginBottom: 10 }}>
-                            Ιστορικό ενοικιάσεων <strong>{customer.name}</strong> {getCustomerIcons(customer)}
-                          </h4>
-                          <table className="expanded-rents-table">
-                            <thead>
-                              <tr>
-                                {/* Empty first column just for spacing */}
-                                <th style={{ width: "5%" }}></th>
-                                <th style={{ textAlign: "center" }} >Εξοπλισμός</th>
-                                <th style={{ textAlign: "center" }} >Έναρξη</th>
-                                <th style={{ textAlign: "center" }} >Λήξη</th>
-                                <th style={{ textAlign: "center" }} >Επιστροφή</th>
-                                <th style={{ textAlign: "center" }} >Πληρωμή</th>
-                                <th style={{ textAlign: "center" }}>Παρατηρήσεις</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {rents
-                                .filter(r => r.customer_id === customer.id)
-                                .map((rent, index) => (
-                                  <tr key={index}>
-                                    <td>{getRentIcons(rent, customer)} </td> {/* empty spacing cell */}
-                                    <td>{getRentedItemsNames(rent.items)}</td>
-                                    <td style={{ textAlign: "center" }} >{formatDateMidium(rent.start_date)}</td>
-                                    <td style={{ textAlign: "center" }} >{formatDateMidium(rent.end_date)}</td>
-                                    <td style={{ textAlign: "center" }} >{isValidDate(rent.ret_date) ? formatDateMidium(rent.ret_date) : "-"}</td>
-                                    <td style={{ textAlign: "center" }} >{isValidDate(rent.paid_date) ? formatDateMidium(rent.paid_date) : "-"}</td>
-                                    <td style={{ textAlign: "center" }} >{rent.notes}</td>
-                                  </tr>
-                                ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
+                  {
+                    expandedCustomerIds.includes(customer.id) && (
+                      <tr
+                        className="expanded-row"
+                        style={{ borderBottom: "2px solid  #0073a8", borderRight: "2px solid  #0073a8", borderLeft: "2px solid  #0073a8" }}
+                      >
+                        <td colSpan={5}>
+                          <div className="expanded-container">
+                            <h4
+                              className="sortable-column-header"
+                              style={{ marginBottom: 10 }}
+                              onClick={() => toggleExpandedCustomer(customer.id)}
+                            >
+
+                              {getCustomerIcons(customer)}{" "}
+                              <b> {customer.rents_count}</b>
+                              {customer.rents_pending_count > 0 ? "/" : ""}
+                              <span
+                                style={{ fontWeight: "bold", color: "red" }}
+                              >
+                                {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}{" "}
+                              </span>
+
+                              <strong>
+                                {customer.name}
+                              </strong>
+
+                              <span style={{ fontSize: "large" }}> ιστορικό ενοικιάσεων</span>
+                            </h4>
+
+                            <table className="expanded-rents-table">
+                              <thead>
+                                <tr>
+                                  {/* Empty first column just for spacing */}
+                                  <th style={{ width: "5%" }}></th>
+                                  <th style={{ textAlign: "center" }} >Εξοπλισμός</th>
+                                  <th style={{ textAlign: "center" }} >Έναρξη</th>
+                                  <th style={{ textAlign: "center" }} >Λήξη</th>
+                                  <th style={{ textAlign: "center" }} >Επιστροφή</th>
+                                  <th style={{ textAlign: "center" }} >Πληρωμή</th>
+                                  <th style={{ textAlign: "center" }}>Παρατηρήσεις</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {rents
+                                  .filter(r => r.customer_id === customer.id)
+                                  .map((rent, index) => (
+                                    <tr
+                                      key={index}
+                                      // backgroundColor: isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? '#d6ffd6' : "#d6e8ff" }classname={isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? "active-row" : ""}
+                                      style={{ backgroundColor: isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? '#d6ffd6' : "#d6e8ff" }}
+                                    >
+                                      <td>{getRentIcons(rent, customer)} </td> {/* empty spacing cell */}
+                                      <td>{getRentedItemsNames(rent.items)}</td>
+                                      <td style={{ textAlign: "center" }} >{formatDateMidium(rent.start_date)}</td>
+                                      <td style={{ textAlign: "center" }} >{formatDateMidium(rent.end_date)}</td>
+                                      <td style={{ textAlign: "center" }} >{isValidDate(rent.ret_date) ? formatDateMidium(rent.ret_date) : "-"}</td>
+                                      <td style={{ textAlign: "center" }} >{isValidDate(rent.paid_date) ? formatDateMidium(rent.paid_date) : "-"}</td>
+                                      <td style={{ textAlign: "center", whiteSpace: 'pre-wrap', textAlign: "left" }} >{rent.notes}</td>
+                                    </tr>
+                                  ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  }
                 </React.Fragment>
               ))}
             </tbody>

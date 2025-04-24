@@ -7,7 +7,7 @@ function CollapsibleHeader({ isCollapsiblePanelOpen, setIsCollapsiblePanelOpen, 
   return (
     <div className="collapsible-panel-wrapper">
       <h2 onClick={() => setIsCollapsiblePanelOpen(!isCollapsiblePanelOpen)} className="collapsible-header">
-        {title}
+        <div dangerouslySetInnerHTML={{ __html: title }} />
         <span className={`arrow ${isCollapsiblePanelOpen ? "open" : ""}`}>▼</span>
       </h2>
     </div>

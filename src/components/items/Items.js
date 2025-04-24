@@ -280,7 +280,7 @@ function Items({ items, setItems, nullItem, API }) {
       {/* Collapsible header */}
       <div>
         <CollapsibleHeader
-          title="Εξοπλισμός"
+          title="📺 Εξοπλισμός"
           isCollapsiblePanelOpen={isCollapsiblePanelOpen}
           setIsCollapsiblePanelOpen={setIsCollapsiblePanelOpen}
         />
@@ -371,7 +371,7 @@ function Items({ items, setItems, nullItem, API }) {
                 {/* Σχόλια */}
                 <th className="">Σχόλια</th>
 
-
+                {/* Actions */}
                 <th className="">Actions</th>
               </tr>
             </thead>

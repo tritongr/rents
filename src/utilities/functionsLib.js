@@ -2,6 +2,9 @@
    * Dates 
    */
 
+import { format } from 'date-fns';
+import { el } from 'date-fns/locale'; // Εισαγωγή της locale για Ελληνικά
+
 // Valid date check
 export function isValidDate(dateStr) {
   return dateStr && dateStr !== "0000-00-00";
@@ -33,7 +36,7 @@ export function convertDateToDisplay(dateStr) {
   return `${d}/${m}/${y}`;
 }
 
-// Dates conversion to DD/MM
+// Dates conversion to DD/MM 
 export function formatDateShort(dateStr) {
   if (!dateStr || dateStr === "0000-00-00") return "";
   const date = new Date(dateStr);
@@ -42,6 +45,47 @@ export function formatDateShort(dateStr) {
   return `${day}/${month}`;
 };
 
+// Dates conversion to DD/MM/YYYY DDDD (e.g., 23/04/2025 Τετάρτη)
+export function formatDayOfWeek(dateStr) {
+  if (!dateStr || dateStr === "0000-00-00") return "";
+  const date = new Date(dateStr);
+
+  try {
+    const dayOfWeek = format(date, 'EEEE', { locale: el });
+    return dayOfWeek
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "";
+  }
+}
+
+// Dates conversion to DDDD DD/MM (e.g., 23/04 \n Τετάρτη)
+export function formatDateShort3(dateStr) {
+  if (!dateStr || dateStr === "0000-00-00") return "";
+  const date = new Date(dateStr);
+
+  try {
+    const dayOfWeek = format(date, 'EEEE', { locale: el });
+    const dayMonth = format(date, 'dd/MM');
+    return `${dayMonth}\n${dayOfWeek}`;
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "";
+  }
+}
+
+// Dates conversion to DDD DD/MM (e.g., Τετ 23/04)
+export function formatDateShort2(dateStr) {
+  if (!dateStr || dateStr === "0000-00-00") return "";
+  const date = new Date(dateStr);
+
+  try {
+    return format(date, 'dd/MM EEE', { locale: el });
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return ""; // Ή κάποια άλλη ένδειξη σφάλματος
+  }
+}
 
 export // Dates conversion to DD/MM/YY
   function formatDateMidium(dateStr) {

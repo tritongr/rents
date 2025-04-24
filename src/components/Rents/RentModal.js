@@ -8,7 +8,8 @@ import "./RentModal.scss"
 import { isValidDate, isDatePast, formatDateShort } from "../../utilities/functionsLib"
 
 import React, { useState, useEffect, useRef } from 'react'
-import Select from 'react-select'
+
+import Select, { components } from "react-select";
 
 export function RentModal({
   isModalOpen,
@@ -101,11 +102,63 @@ export function RentModal({
     multiValue: (styles, state) => ({ ...styles, backgroundColor: "#8BE78B", color: "black" }), // η λίστα με τα options
     multiValueLabel: (styles, state) => ({ ...styles, textAlign: "left", color: "black" }), // η λίστα με τα options
     multiValueRemove: (styles, state) => ({ ...styles, cursor: "pointer", }), // το x που το διαγράφει
+    valueContainer: (provided) => ({
+      ...provided,
+      maxHeight: "6em", // περίπου 4 γραμμές (δοκίμασε 5em ή 6em)
+      overflowY: "auto",
+      flexWrap: "wrap",
+    }),
   }
 
   /**
    * Get items for dropdown list
    */
+  const CheckboxOption = (props) => {
+    return (
+      <components.Option {...props}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "left",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            gap: "6px", // μικρό κενό ανάμεσα στο checkbox και το label
+            fontSize: "0.9em", // πιο μαζεμένο μέγεθος
+            lineHeight: "1.2em", // μειωμένο line spacing
+            padding: "4px 8px", // ελαφρύ padding
+          }}
+        >
+          <div style={{ flex: "1", textAlign: "center" }} flex="1">
+            <input
+              type="checkbox"
+              checked={props.isSelected}
+              onChange={() => null}
+              style={{
+                margin: 0,
+                padding: 0,
+                verticalAlign: "middle"
+              }}
+            />
+            <span
+              style={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                textAlign: "left",
+                flex: 1
+              }}
+            >
+              {props.label}
+            </span>
+          </div>
+        </div>
+      </components.Option>
+    );
+  };
+
+
+
+
   function getItems() {
 
     const richItems = items.map(i => {
@@ -142,16 +195,22 @@ export function RentModal({
       //return ({ label: (i.is_rented == 1 ? "❌ " : "") + i.name, value: parseInt(i.id) }))
     }
     )
-    console.log("richItems: => ", richItems)
 
     return richItems
   }
 
   return (
-    <div className='modal-wraper modal-overlay'>
+    <div className='modal-wraper modal-overlay' >
 
       {/* Content wraper */}
-      <div className="modal-content">
+      <div
+        className="modal-content"
+        style={{
+          overflowY: "auto", // 👈 περιορισμός ύψους
+          maxHeight: "90vh" // 👈 scrollbar όταν χρειάζεται
+        }}
+
+      >
 
         {/* Header */}
         <div className="modal-header">
@@ -165,6 +224,7 @@ export function RentModal({
             placeholder="Επιλέξτε πελάτη..."
             options={customers.map(c => ({ label: c.name, value: c.id }))}
             value={selectedCustomer}
+            hideSelectedOptions={false}
             onChange={selection => setSelectedCustomer(selection)}
             styles={selectCustomerStyle}
           />
@@ -172,6 +232,8 @@ export function RentModal({
           {/* Items multi select */}
           <Select
             placeholder="Επιλέξτε εξοπλισμό..."
+            //  components={{ Option: CheckboxOption }}
+            closeMenuOnSelect={false} // σημαντικό για να ΜΗΝ κλείνει κάθε φορά
             options={getItems()}
 
             // options={
@@ -189,6 +251,7 @@ export function RentModal({
             value={editingRent.notes}
             onChange={(e) => setEditingRent({ ...editingRent, notes: e.target.value })}
             placeholder="Σχόλια"
+            rows="5"
           />
 
           <div style={{ display: "flex" }}>
