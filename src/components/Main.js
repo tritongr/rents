@@ -18,7 +18,7 @@ function Main() {
   const nullItem = { id: 0, name: "", description: "", is_available: true }
   const [items, setItems] = useState([])
 
-  const nullRent = { id: 0, customer_id: null, customer_name: null, rented_items: [], start_date: "", end_date: "", ret_date: "", paid_date: "", notes: "" }
+  const nullRent = { id: 0, customer_id: null, customer_name: null, rented_items: [], start_date: "", end_date: "", ret_date: "", paid_date: "", last_update: "", notes: "" }
   const [rents, setRents] = useState([])
 
   // Global API parameter

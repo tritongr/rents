@@ -748,6 +748,50 @@ function rentValidRecord($rent)
 }
 
 /**
+ * Helper function που επιστρέφει ένα πλήρες
+ * rent record με τα calculated fields
+ */
+function get_rent_by_id($id)
+{
+  global $wpdb;
+
+  try { // *** On success ***
+
+    // Παίρνουμε το συγκεκριμένο rent με JOIN στα customers
+    $rent = $wpdb->get_row(
+      $wpdb->prepare(
+        "
+        SELECT r.*, c.name AS customer_name, c.phone AS customer_phone, c.notes AS customer_notes
+        FROM {$wpdb->prefix}rent_rents r
+        LEFT JOIN {$wpdb->prefix}rent_customers c ON r.customer_id = c.id
+        WHERE r.id = %d
+        ",
+        $id
+      ),
+      ARRAY_A
+    );
+
+    if (!$rent) {
+      return new WP_REST_Response(['error' => 'Rent not found.'], 404);
+    }
+
+    // Παίρνουμε και τα related items
+    $items = $wpdb->get_col(
+      $wpdb->prepare(
+        "SELECT item_id FROM {$wpdb->prefix}rent_rented_items WHERE rent_id = %d",
+        $id
+      )
+    );
+    $rent['items'] = $items;
+
+    return new WP_REST_Response($rent, 200);
+  } catch (Exception $e) { // *** On error ***
+    return new WP_REST_Response(['error' => $e->getMessage()], 500);
+  }
+}
+
+
+/**
  * GET all rents
  */
 
@@ -804,6 +848,7 @@ function create_rent($request)
       'end_date' => $rent['end_date'],
       'ret_date' => $rent['ret_date'],
       'paid_date' => $rent['paid_date'],
+      'last_update' => $rent['last_update'],
       'notes' => $rent['notes'],
     ]);
 
@@ -824,7 +869,17 @@ function create_rent($request)
       }
     endif;
 
-    return get_all_rents();
+    // Return full rent record
+    return get_rent_by_id($rent_id);
+
+    // Πάρε κανονικά τα rents ως array
+    // $allRentsResponse = get_all_rents();
+    // $allRents = $allRentsResponse->get_data(); // <-- καθαρό array
+
+    // return new WP_REST_Response([
+    //   'rents' => $allRents, // το rents array
+    //   'new_rent_id' => $rent_id, // το νέο id που μόλις δημιουργήθηκε
+    // ], 200);
   } catch (Exception $e) { // *** On error ***
 
     return new WP_REST_Response(['error' => $e->getMessage()], 500);
@@ -869,6 +924,7 @@ function update_rent($request)
       'end_date' => $rent['end_date'],
       'ret_date' => $rent['ret_date'],
       'paid_date' => $rent['paid_date'],
+      'last_update' => $rent['last_update'],
       'notes' => $rent['notes']
     ];
 

@@ -6,7 +6,7 @@
  */
 
 import "./Rents.scss"
-import { isValidDate, isDatePast, formatDateShort, formatDateShort3, formatDayOfWeek, formatDateMidium } from "../../utilities/functionsLib"
+import { dateDifferenceInDays, displayDateInEEST, isValidDate, isDatePast, formatDateShort, dateAddDays, formatDateUTCStart, formatDateUTCEnd, formatDateShort3, formatDayOfWeek, formatDateMidium, formatDateEnd, formatDateStart, dateSubstractDays } from "../../utilities/functionsLib"
 
 import React, { useState, useEffect, useRef } from "react"
 import axios from "axios"
@@ -117,7 +117,8 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       end_date: editingRent.end_date,
       ret_date: editingRent.ret_date,
       paid_date: editingRent.paid_date,
-      notes: editingRent.notes
+      notes: editingRent.notes,
+      last_update: new Date()
     }
   }
 
@@ -151,16 +152,28 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
     }
 
     // Success new record
-    // Το response.data περιέχει το id του νέου record π.χ. {id: 139}
+    // Το response.data 
     function handleSuccess(response) {
 
-      setRents(response.data)
-      setEditingRent(nullRent)
+      console.log("response.data: ", response.data)
+
+      const newRent = response.data
+      setRents([...rents, response.data])
+
+      console.log("newRent: ", newRent)
+      console.log("rents: ", rents)
+
       setSelectedItems([])
       setSelectedCustomer({})
       setIsModalOpen(false)
 
       toast.success('Η ενοικίαση προστέθηκε!')
+
+      copyToClipboard(rentToCopy(newRent))
+      createGoogleCalendarEvent(newRent)
+
+      setEditingRent(nullRent)
+
     }
 
     // Fail save new record
@@ -215,6 +228,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       setIsModalOpen(false)
 
       toast.info('Η ενοικίαση ενημερώθηκε!')
+      // copyToClipboard(newRent)
 
     }
 
@@ -408,8 +422,9 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
     const customerPhone = (rent.customer_phone + "").trim().length > 0 ? "\n" + rent.customer_phone : ""
     const customerNotes = (rent.customer_notes + "").trim().length > 0 ? "\n" + rent.customer_notes : ""
     const rentNotes = (rent.notes + "").trim().length > 0 ? "\n" + rent.notes : ""
+    const lastUpdate = "" //isValidDate(rent.last_update) ? "\n(Τελ. ενημ.: " + rent.last_update + ")" : ""
 
-    const text = `***ΣΤΟΙΧΕΙΑ ΕΝΟΙΚΙΑΣΗΣ***\n\nΠΕΛΑΤΗΣ:\n${rent.customer_name}${customerPhone}${customerNotes}\n\nΕΞΟΠΛΙΣΜΟΣ (${itemNames.length}):\n${itemNames.join(", ")}\n\nΣΧΟΛΙΑ:${rentNotes} \n\nΗΜΕΡΟΜΗΝΙΕΣ:\nΈναρξη: ${formatDateMidium(rent.start_date) + ", " + formatDayOfWeek(rent.start_date)}\nΛήξη: ${formatDateMidium(rent.end_date) + ", " + formatDayOfWeek(rent.end_date)}`
+    const text = `***ΣΤΟΙΧΕΙΑ ΕΝΟΙΚΙΑΣΗΣ***\n\nΠΕΛΑΤΗΣ:\n${rent.customer_name}${customerPhone}${customerNotes}\n\nΕΞΟΠΛΙΣΜΟΣ (${itemNames.length}):\n${itemNames.join(", ")}\n\nΣΧΟΛΙΑ:${rentNotes} \n\nΗΜΕΡΟΜΗΝΙΕΣ:\nΈναρξη: ${formatDateMidium(rent.start_date) + ", " + formatDayOfWeek(rent.start_date)}\nΛήξη: ${formatDateMidium(rent.end_date) + ", " + formatDayOfWeek(rent.end_date)}${lastUpdate}`
 
     console.log(text)
 
@@ -420,6 +435,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   function copyToClipboard(textToCopy) {
 
     if (!navigator.clipboard?.writeText) {
+      toast.warn('Η αντιγραφή στο clipboard δεν έγινε!')
       return
     }
 
@@ -434,6 +450,79 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
         console.error("Failed to copy: ", err);
       });
   }
+
+  // Handle send to keep
+  const handleSendToKeep = async (rent) => {
+
+    // copyToClipboard(rentToCopy(rent))
+
+    try {
+      // await navigator.clipboard.writeText(text);
+      // alert("Αντιγράφηκε στο clipboard!");
+
+      const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      const isMobile = /android|iphone|ipad|ipod/i.test(userAgent);
+      const isAndroid = /android/i.test(userAgent);
+      const isIOS = /iphone|ipad|ipod/i.test(userAgent);
+
+      if (isMobile) {
+        if (isAndroid) {
+          // Προσπάθεια ανοίγματος της Keep App μέσω intent
+          window.location.href =
+            "intent://keep.google.com/#Intent;package=com.google.android.keep;scheme=https;end";
+        } else if (isIOS) {
+          // iPhone/iPad: άνοιγμα απλά στον browser
+          window.open("https://keep.google.com", "_blank");
+        }
+      } else {
+        // Desktop
+        window.open("https://keep.google.com", "_blank");
+      }
+    } catch (err) {
+      toast.error('To keep δεν μπορεί να ανοίξει!')
+      console.error(err);
+    }
+  }
+
+  /** 
+   * Create calendar event
+  */
+  const createGoogleCalendarEvent = (rent) => {
+
+    // Αν έχει λήξη η ενοικίαση
+    if (isDatePast(rent.end_date)) {
+      toast.warn('Δεν μπορείτε να δημιουργήσετε event για ενοικίαση που έχει λήξει')
+      return
+    }
+
+    let rentTitle
+    let startDate
+    let endDate
+
+    if (!isDatePast(rent.start_date)) {// Αν δεν έχει ξεκινήσει η ενοικίαση, το event αφορά την έναρξη
+      rentTitle = rent.customer_name + " ΕΝΑΡΞΗ " + formatDateShort(rent.start_date) + " - " + formatDateShort(rent.end_date)
+      startDate = formatDateStart(rent.start_date)
+      endDate = formatDateEnd(rent.start_date)
+    } else { // Αν έχει ξεκινήσει η ενοικίαση, το event αφορά την λήξη
+      rentTitle = rent.customer_name + " ΛΗΞΗ " + formatDateShort(rent.start_date) + " - " + formatDateShort(rent.end_date)
+      startDate = formatDateStart(rent.end_date)
+      endDate = formatDateEnd(rent.end_date)
+    }
+
+    // Μορφοποίηση σε ISO 8601
+    const startDateISO = startDate.toISOString().replace(/[-:]/g, '').replace(/\.000Z$/, 'Z');
+    const endDateISO = endDate.toISOString().replace(/[-:]/g, '').replace(/\.000Z$/, 'Z');
+
+
+    const baseUrl = "https://calendar.google.com/calendar/u/0/r/eventedit";
+
+    const url = `${baseUrl}?text=${encodeURIComponent(rentTitle)}&details=${encodeURIComponent(rentToCopy(rent))}&dates=${startDateISO}/${endDateISO}`;
+
+    console.log("CUSTOMER: ", rent.customer_name);
+    console.log("url: ", url);
+    url
+    window.open(url, "_blank");
+  };
 
   /**
    *  Rendering
@@ -496,7 +585,9 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
                 border: "none",
                 cursor: "pointer",
                 fontSize: "16px",
-                verticalAlign: "middle"
+                verticalAlign: "middle",
+                paddingTop: "0",
+                paddingBottom: "0"
               }}
             >
               <span className="dashicons dashicons-editor-help" style={{ color: "red" }}></span>
@@ -942,9 +1033,12 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
             <div style={{ marginTop: "10px" }}>{rentToCopy(rentPopup)}</div>
 
-            {/* Close button */}
-            <div style={{ textAlign: "right", marginTop: "20px" }}>
+            {/* Βuttons */}
+            <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
+
+              {/* Close button */}
               <button
+                style={{ marginLeft: "0" }}
                 className="button-save"
                 onClick={() => setRentPopup(null)}
               >
@@ -953,23 +1047,42 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
               {/* Keep button */}
               <button
+                title="Άνοιγμα του Keep"
                 className="button-edit"
-                onClick={() => { { window.open("https://keep.google.com", "_blank"); setRentPopup(null) } }}
+                onClick={() => {
+                  handleSendToKeep(rentPopup)
+                  setRentPopup(null)
+                }}
               >
-                Keep
+                &nbsp;📝&nbsp;
               </button>
 
               {/* eMail button */}
               <button
+                // style={{ marginRight: "0" }}
+                title="Προετοιμασία αποστολής email στο procompusound@gmail.com"
                 className="button-edit"
                 onClick={() => {
+                  const to = "malatantis@gmail.com,procompusound@gmail.com";
                   const subject = encodeURIComponent(`Ενοικίαση: ${rentPopup.customer_name}`);
                   const body = encodeURIComponent(`${rentPopup.customer_name}\n\n${rentToCopy(rentPopup)}`);
-                  const mailtoLink = `mailto:malatantis@gmail.com?subject=${subject}&body=${body}`;
+                  const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}&bcc=mmalatantis@gmail.com`;
                   window.location.href = mailtoLink;
                 }}
               >
-                📧 Email
+                &nbsp;📧&nbsp;
+              </button>
+
+              {/* Event button */}
+              <button
+                title={`Δημιουργία calendar event στις ${formatDateShort(rentPopup.start_date)}`}
+                className="button-edit"
+                onClick={() => {
+                  createGoogleCalendarEvent(rentPopup)
+                  setRentPopup(null)
+                }}
+              >
+                &nbsp;📅;
               </button>
 
             </div>
