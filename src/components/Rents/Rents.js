@@ -6,7 +6,9 @@
  */
 
 import "./Rents.scss"
-import { dateDifferenceInDays, displayDateInEEST, isValidDate, isDatePast, formatDateShort, dateAddDays, formatDateUTCStart, formatDateUTCEnd, formatDateShort3, formatDayOfWeek, formatDateMidium, formatDateEnd, formatDateStart, dateSubstractDays } from "../../utilities/functionsLib"
+
+import { format } from 'date-fns';
+import { isValidDate, isDatePast, formatDateShort, formatDateShort3, formatDayOfWeek, formatDateMidium, formatDateEnd, formatDateStart } from "../../utilities/functionsLib"
 
 import React, { useState, useEffect, useRef } from "react"
 import axios from "axios"
@@ -51,7 +53,8 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   const [showToCollect, setShowToCollect] = useState(false)
   const [showToGetPaid, setShowToGetPaid] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
-  const [showNotCompleted, setShowNotCompleted] = useState(false)
+  const [showNotCompleted, setShowNotCompleted] = useState(false) //showInProgress
+  const [showInProgress, setShowInProgress] = useState(false)
 
   const [searchText, setSearchText] = useState("")
   const [sortColumn, setSortColumn] = useState("start_date")
@@ -117,8 +120,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       end_date: editingRent.end_date,
       ret_date: editingRent.ret_date,
       paid_date: editingRent.paid_date,
-      notes: editingRent.notes,
-      last_update: new Date()
+      notes: editingRent.notes
     }
   }
 
@@ -222,13 +224,16 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
     // Το response.data περιέχει ολόκληρο τον πίνακα
     function handleSuccess(response) {
 
-      setRents(response.data)
+      const updateRent = response.data
+      setRents(prev => prev.map(rent => rent.id === response.data.id ? response.data : rent));
+
       setEditingRent(nullRent)
       setSelectedItems([])
       setIsModalOpen(false)
 
       toast.info('Η ενοικίαση ενημερώθηκε!')
-      // copyToClipboard(newRent)
+
+      copyToClipboard(rentToCopy(updateRent))
 
     }
 
@@ -354,6 +359,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
    */
   // Φιλτράρισμα βάσει searchText και is_pending
   const filteredRents = rents
+    .filter(r => !showInProgress || (isDatePast(r.start_date) && (!isDatePast(r.end_date))))  // Σε εξέλιξη
     .filter(r => !showFutured || !isDatePast(r.start_date))  // Μελλοντικές
     .filter(r => !showToCollect || (isDatePast(r.end_date) && !isValidDate(r.ret_date)))  // Για παραλλαβή
     .filter(r => !showToGetPaid || (isDatePast(r.end_date) && !isValidDate(r.paid_date)))  // Για είσπραξη
@@ -422,9 +428,9 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
     const customerPhone = (rent.customer_phone + "").trim().length > 0 ? "\n" + rent.customer_phone : ""
     const customerNotes = (rent.customer_notes + "").trim().length > 0 ? "\n" + rent.customer_notes : ""
     const rentNotes = (rent.notes + "").trim().length > 0 ? "\n" + rent.notes : ""
-    const lastUpdate = "" //isValidDate(rent.last_update) ? "\n(Τελ. ενημ.: " + rent.last_update + ")" : ""
+    const lastModified = isValidDate(rent.last_modified) ? "\n(Τελ. ενημ.: " + rent.last_modified + ")" : ""
 
-    const text = `***ΣΤΟΙΧΕΙΑ ΕΝΟΙΚΙΑΣΗΣ***\n\nΠΕΛΑΤΗΣ:\n${rent.customer_name}${customerPhone}${customerNotes}\n\nΕΞΟΠΛΙΣΜΟΣ (${itemNames.length}):\n${itemNames.join(", ")}\n\nΣΧΟΛΙΑ:${rentNotes} \n\nΗΜΕΡΟΜΗΝΙΕΣ:\nΈναρξη: ${formatDateMidium(rent.start_date) + ", " + formatDayOfWeek(rent.start_date)}\nΛήξη: ${formatDateMidium(rent.end_date) + ", " + formatDayOfWeek(rent.end_date)}${lastUpdate}`
+    const text = `***ΣΤΟΙΧΕΙΑ ΕΝΟΙΚΙΑΣΗΣ***\n\nΠΕΛΑΤΗΣ:\n${rent.customer_name}${customerPhone}${customerNotes}\n\nΕΞΟΠΛΙΣΜΟΣ (${itemNames.length}):\n${itemNames.join(", ")}\n\nΣΧΟΛΙΑ:${rentNotes} \n\nΗΜΕΡΟΜΗΝΙΕΣ:\nΈναρξη: ${formatDateMidium(rent.start_date) + ", " + formatDayOfWeek(rent.start_date)}\nΛήξη: ${formatDateMidium(rent.end_date) + ", " + formatDayOfWeek(rent.end_date)}${lastModified}`
 
     console.log(text)
 
@@ -495,34 +501,78 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       return
     }
 
-    let rentTitle
-    let startDate
-    let endDate
 
-    if (!isDatePast(rent.start_date)) {// Αν δεν έχει ξεκινήσει η ενοικίαση, το event αφορά την έναρξη
-      rentTitle = rent.customer_name + " ΕΝΑΡΞΗ " + formatDateShort(rent.start_date) + " - " + formatDateShort(rent.end_date)
-      startDate = formatDateStart(rent.start_date)
-      endDate = formatDateEnd(rent.start_date)
-    } else { // Αν έχει ξεκινήσει η ενοικίαση, το event αφορά την λήξη
-      rentTitle = rent.customer_name + " ΛΗΞΗ " + formatDateShort(rent.start_date) + " - " + formatDateShort(rent.end_date)
-      startDate = formatDateStart(rent.end_date)
-      endDate = formatDateEnd(rent.end_date)
-    }
+    // Start event parameters
+    // ----------------------
+    const startEventTitle = rent.customer_name + " ΕΝΑΡΞΗ " + formatDateShort(rent.start_date) + " - " + formatDateShort(rent.end_date)
+    // const startEventStartDate = formatDateStart(rent.start_date)
+    // const startEventEndDate = formatDateEnd(rent.start_date)
+    const startEventStartDate = format(rent.start_date, "yyyyMMdd") // χωρίς ώρα
+
+
 
     // Μορφοποίηση σε ISO 8601
-    const startDateISO = startDate.toISOString().replace(/[-:]/g, '').replace(/\.000Z$/, 'Z');
-    const endDateISO = endDate.toISOString().replace(/[-:]/g, '').replace(/\.000Z$/, 'Z');
+    // const startEventStartDateISO = startEventStartDate.toISOString().replace(/[-:]/g, '').replace(/\.000Z$/, 'Z');
+    // const startEventEndDateISO = startEventEndDate.toISOString().replace(/[-:]/g, '').replace(/\.000Z$/, 'Z');
+
+    // End event parameters
+    // --------------------
+    const endEventTitle = rent.customer_name + " ΛΗΞΗ " + formatDateShort(rent.end_date) + " (από " + formatDateShort(rent.start_date) + ")"
+    // const endEventStartDate = formatDateStart(rent.end_date)
+    // const endEventEndDate = formatDateEnd(rent.end_date)
+    const endEventStartDate = format(rent.end_date, "yyyyMMdd") // χωρίς ώρα
+
+    // Μορφοποίηση σε ISO 8601
+    // const endEventStartDateISO = endEventStartDate.toISOString().replace(/[-:]/g, '').replace(/\.000Z$/, 'Z');
+    // const endEventEndDateISO = endEventEndDate.toISOString().replace(/[-:]/g, '').replace(/\.000Z$/, 'Z');
 
 
+    // Δημιουργία events
+    // -----------------
     const baseUrl = "https://calendar.google.com/calendar/u/0/r/eventedit";
 
-    const url = `${baseUrl}?text=${encodeURIComponent(rentTitle)}&details=${encodeURIComponent(rentToCopy(rent))}&dates=${startDateISO}/${endDateISO}`;
+    // Start event
+    if (!isDatePast(rent.start_date)) {// Αν δεν έχει ξεκινήσει η ενοικίαση, δημιουργία event
+      const url = `${baseUrl}?text=${encodeURIComponent(startEventTitle)}&details=${encodeURIComponent(rentToCopy(rent))}&dates=${startEventStartDate}/${startEventStartDate}`;
+      window.open(url, "_blank");
+    }
 
-    console.log("CUSTOMER: ", rent.customer_name);
-    console.log("url: ", url);
-    url
-    window.open(url, "_blank");
+    // End event
+    if (!isDatePast(rent.end_date)) { // Αν δεν έχει λήξει η ενοικίαση, δημιουργία event
+      const url = `${baseUrl}?text=${encodeURIComponent(endEventTitle)}&details=${encodeURIComponent(rentToCopy(rent))}&dates=${endEventStartDate}/${endEventStartDate}`;
+      window.open(url, "_blank");
+    }
+
   };
+
+  // Calendar button
+  function calendarButtonText(rent) {
+
+    // Αν έχει λήξη η ενοικίαση
+    if (isDatePast(rent.end_date)) {
+      return "Έχει λήξει"
+    }
+
+    var text = ""
+
+    // Μελλοντική ενοικίαση
+    if (!isDatePast(rent.start_date) && !isDatePast(rent.end_date)) {
+
+      return "Events Από & Έως 📅"
+
+    }
+
+    // Σε εξέλιξη ενοικίαση
+    if (!isDatePast(rent.end_date)) {
+
+      return "Event λήξης 📅"
+
+    }
+
+
+
+
+  }
 
   /**
    *  Rendering
@@ -540,7 +590,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
         />
       </div>
 
-      {/* Wrapper div για add new button, checkboxes, search div */}
+      {/* Wrapper div για add new button, checkboxes, search */}
       {isCollapsiblePanelOpen && (
         <div
           style={{
@@ -603,12 +653,22 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
               {' '}Μελλοντικές
             </label>
 
+            {/* Σε εξέλιξη */}
+            <label title="Ενοικιάσεις που ξεκίνησαν αλλά δεν έληξαν ακόμη" style={{ marginRight: '1em', fontWeight: "bold" }}>
+              <input
+                type="checkbox"
+                checked={showInProgress}
+                onChange={() => { setShowInProgress(!showInProgress); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowNotCompleted(false); setShowToCollect(false); setShowToGetPaid(false); setShowFutured(false); }}
+              />
+              {' '}Σε εξέλιξη
+            </label>
+
             {/* Για παραλαβή */}
             <label title="Δεν έχουν επιστραφεί ενώ έχουν λήξει" style={{ marginRight: '1em', fontWeight: "bold" }}>
               <input
                 type="checkbox"
                 checked={showToCollect}
-                onChange={() => { setShowToCollect(!showToCollect); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowNotCompleted(false); setShowFutured(false); setShowToGetPaid(false) }}
+                onChange={() => { setShowToCollect(!showToCollect); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowNotCompleted(false); setShowFutured(false); setShowToGetPaid(false); setShowInProgress(false); }}
               />
               {' '}Για παραλαβή
             </label>
@@ -618,7 +678,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
               <input
                 type="checkbox"
                 checked={showToGetPaid}
-                onChange={() => { setShowToGetPaid(!showToGetPaid); setShowToCollect(false); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowNotCompleted(false); setShowFutured(false); }}
+                onChange={() => { setShowToGetPaid(!showToGetPaid); setShowToCollect(false); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowNotCompleted(false); setShowFutured(false); setShowInProgress(false); }}
               />
               {' '}Για είσπραξη
             </label>
@@ -629,7 +689,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
                 <input
                   type="checkbox"
                   checked={showUnreturned}
-                  onChange={() => { setShowUnreturned(!showUnreturned); setShowUnpaid(false); setShowFutured(false); setShowCompleted(false); setShowNotCompleted(false); setShowToCollect(false); setShowToGetPaid(false) }}
+                  onChange={() => { setShowUnreturned(!showUnreturned); setShowUnpaid(false); setShowFutured(false); setShowCompleted(false); setShowNotCompleted(false); setShowToCollect(false); setShowToGetPaid(false); setShowInProgress(false); }}
                 />
                 {' '}Δεν επεστράφησαν
               </label>
@@ -639,7 +699,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
                 <input
                   type="checkbox"
                   checked={showUnpaid}
-                  onChange={() => { setShowUnpaid(!showUnpaid); setShowUnreturned(false); setShowFutured(false); setShowCompleted(false); setShowNotCompleted(false); setShowToCollect(false); setShowToGetPaid(false) }}
+                  onChange={() => { setShowUnpaid(!showUnpaid); setShowUnreturned(false); setShowFutured(false); setShowCompleted(false); setShowNotCompleted(false); setShowToCollect(false); setShowToGetPaid(false); setShowInProgress(false); }}
                 />
                 {' '}Ανεξόφλητες
               </label>
@@ -649,7 +709,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
                 <input
                   type="checkbox"
                   checked={showCompleted}
-                  onChange={() => { setShowCompleted(!showCompleted); setShowUnpaid(false); setShowUnreturned(false); setShowFutured(false); setShowNotCompleted(false); setShowToCollect(false); setShowToGetPaid(false) }}
+                  onChange={() => { setShowCompleted(!showCompleted); setShowUnpaid(false); setShowUnreturned(false); setShowFutured(false); setShowNotCompleted(false); setShowToCollect(false); setShowToGetPaid(false); setShowInProgress(false); }}
                 />
                 {' '}Ολοκληρωμένες
               </label>
@@ -659,7 +719,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
                 <input
                   type="checkbox"
                   checked={showNotCompleted}
-                  onChange={() => { setShowNotCompleted(!showNotCompleted); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowFutured(false); setShowToCollect(false); setShowToGetPaid(false) }}
+                  onChange={() => { setShowNotCompleted(!showNotCompleted); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowFutured(false); setShowToCollect(false); setShowToGetPaid(false); setShowInProgress(false); }}
                 />
                 {' '}Μη Ολοκληρωμένες
               </label>
@@ -937,6 +997,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
               <h3 style={{ marginTop: 0 }}>Επεξήγηση φίλτρων</h3>
               <ul style={{ paddingLeft: "1.2em", fontSize: "14px", lineHeight: "1.5" }}>
                 <li><strong>Μελλοντικές:</strong> Ενοικιάσεις που ξεκινούν μετά από σήμερα και πρέπει να  προετοιμάσουμε τον εξοπλισμό.</li>
+                <li><strong>Σε εξέλιξη:</strong> Ενοικιάσεις που ξεκίνησαν αλλά δεν έχουν λήξη ακόμη.</li>
                 <li><strong>Για παραλαβή:</strong> Ενοικιάσεις που δεν έχουν επιστραφεί ενώ έχει περάσει η ημ. λήξης και πρέπει να ανακτήσουμε τον εξοπλισμό.</li>
                 <li><strong>Για είσπραξη:</strong> Ενοικιάσεις για τις οποίες δεν πληρωθήκαμε ενώ έχει περάσει η ημ. λήξης.</li>
                 <li><strong>Δεν επεστράφησαν:</strong> Δεν έχει οριστεί ημερομηνία επιστροφής.</li>
@@ -1034,56 +1095,60 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
             <div style={{ marginTop: "10px" }}>{rentToCopy(rentPopup)}</div>
 
             {/* Βuttons */}
-            <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
-
-              {/* Close button */}
-              <button
-                style={{ marginLeft: "0" }}
-                className="button-save"
-                onClick={() => setRentPopup(null)}
-              >
-                Κλείσιμο
-              </button>
-
-              {/* Keep button */}
-              <button
-                title="Άνοιγμα του Keep"
-                className="button-edit"
-                onClick={() => {
-                  handleSendToKeep(rentPopup)
-                  setRentPopup(null)
-                }}
-              >
-                &nbsp;📝&nbsp;
-              </button>
-
-              {/* eMail button */}
-              <button
-                // style={{ marginRight: "0" }}
-                title="Προετοιμασία αποστολής email στο procompusound@gmail.com"
-                className="button-edit"
-                onClick={() => {
-                  const to = "malatantis@gmail.com,procompusound@gmail.com";
-                  const subject = encodeURIComponent(`Ενοικίαση: ${rentPopup.customer_name}`);
-                  const body = encodeURIComponent(`${rentPopup.customer_name}\n\n${rentToCopy(rentPopup)}`);
-                  const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}&bcc=mmalatantis@gmail.com`;
-                  window.location.href = mailtoLink;
-                }}
-              >
-                &nbsp;📧&nbsp;
-              </button>
+            <div style={{ display: "flex", flexDirection: "column", rowGap: "4px", alignItems: "center", justifyContent: "center", marginTop: "20px" }}>
 
               {/* Event button */}
+
               <button
-                title={`Δημιουργία calendar event στις ${formatDateShort(rentPopup.start_date)}`}
+                title="Δημιουργία calendar event(s)"
                 className="button-edit"
                 onClick={() => {
                   createGoogleCalendarEvent(rentPopup)
                   setRentPopup(null)
                 }}
               >
-                &nbsp;📅;
+                {calendarButtonText(rentPopup)}
               </button>
+
+              <div>
+
+                {/* Keep button */}
+                <button
+                  title="Άνοιγμα του Keep"
+                  className="button-edit"
+                  onClick={() => {
+                    handleSendToKeep(rentPopup)
+                    setRentPopup(null)
+                  }}
+                >
+                  Keep&nbsp;📝&nbsp;
+                </button>
+
+                {/* eMail button */}
+                <button
+                  // style={{ marginRight: "0" }}
+                  title="Προετοιμασία αποστολής email στο procompusound@gmail.com"
+                  className="button-edit"
+                  onClick={() => {
+                    const to = "malatantis@gmail.com,procompusound@gmail.com";
+                    const subject = encodeURIComponent(`Ενοικίαση: ${rentPopup.customer_name}`);
+                    const body = encodeURIComponent(`${rentPopup.customer_name}\n\n${rentToCopy(rentPopup)}`);
+                    const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}&bcc=mmalatantis@gmail.com`;
+                    window.location.href = mailtoLink;
+                  }}
+                >
+                  Email&nbsp;📧&nbsp;
+                </button>
+
+                {/* Close button */}
+                <button
+                  style={{ marginLeft: "0" }}
+                  className="button-save"
+                  onClick={() => setRentPopup(null)}
+                >
+                  <span class="dashicons dashicons-exit"></span>
+                </button>
+              </div>
 
             </div>
           </div>

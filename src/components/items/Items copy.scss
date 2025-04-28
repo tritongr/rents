@@ -1,50 +1,35 @@
 /** 
-* Customers styles
+* Items styles
 */
 
 @use '../utilities/colors.scss';
 
 $wordpress-blue: hsl(199, 100%, 33%);
-$wordpress-blue-light: #008bcc;
+$wordpress-blue-light: hsl(199, 100%, 40%);
 
-.rents-wrapper {
+.items-wrapper {
   border: 1px solid#ddd;
-  padding: 0 0 3px 0;
+  padding: 10px;
   border-radius: 4px;
 
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch; // για smooth scrolling σε iOS
 
-  // Hide on mobiles
-  @media (max-width: 768px) {
-    .hide-on-mobile {
-      display: none;
-    }
+  .button-clear-inside {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #999;
   }
 
-  // Hide on portrait
-  @media only screen and (orientation: portrait) {
-    .hide-in-portrait {
-      display: none;
-    }
-  }
-
-  //  Fade in για το help modal
-  .fade-in {
-    animation: fadeIn 0.3s ease;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
+  .button-clear-inside:hover {
+    color: #333;
   }
 
   table {
@@ -60,46 +45,25 @@ $wordpress-blue-light: #008bcc;
       padding: 0.75rem;
       border: 1px solid #ccc;
       text-align: left;
+    }
 
-      &.td-center {
-        text-align: center;
-      }
+    th {
+      text-align: center;
     }
 
     th:nth-child(1),
     td:nth-child(1) {
-      width: 18%;
+      width: 20%;
     }
 
     th:nth-child(2),
     td:nth-child(2) {
-      width: 15%;
+      width: 30%;
     }
 
     th:nth-child(3),
     td:nth-child(3) {
-      width: 12%;
-    }
-
-    th:nth-child(4),
-    td:nth-child(4) {
-      width: 12%;
-    }
-
-    th:nth-child(5),
-    td:nth-child(5) {
-      width: 10%;
-    }
-
-
-    th:nth-child(6),
-    td:nth-child(6) {
-      width: 10%;
-    }
-
-    th:nth-child(8),
-    td:nth-child(8) {
-      width: 12%;
+      width: 25%;
     }
 
     th,
@@ -107,11 +71,10 @@ $wordpress-blue-light: #008bcc;
       width: auto;
     }
 
-    th {
-      text-align: center;
-    }
 
-    // /* Κρύβουμε πεςριττές στήλες στα κινητά */
+
+
+    /* Κρύβουμε πεςριττές στήλες στα κινητά */
     // @media (max-width: 600px) {
 
     //   // Τηλέφωνο, Αctive
@@ -131,70 +94,10 @@ $wordpress-blue-light: #008bcc;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    // margin-bottom: 10px;
+    margin-bottom: 10px;
 
     &:hover {
       background: $wordpress-blue-light;
-    }
-  }
-
-  button {
-    // display: flex;
-    align-items: center;
-    // gap: 5px; // Απόσταση μεταξύ εικονιδίου & κειμένου
-    font-size: 14px;
-    padding: 6px 12px;
-    margin-right: 5px;
-    border: none !important;
-    cursor: pointer;
-    color: white !important;
-    transition: background-color 0.5s ease;
-
-    &:hover {
-      background-color: hsl(59, 95%, 59%);
-    }
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    // Edit button
-    &.button-edit,
-    &.button-add {
-      background-color: colors.$button-edit-background-color;
-
-      &:hover {
-        background-color: colors.$button-edit-hover-background-color
-      }
-    }
-
-    // Save button
-    &.button-save {
-      background-color: colors.$button-save-background-color;
-
-      &:hover {
-        background-color: colors.$button-save-hover-background-color;
-      }
-    }
-
-    //Cancel button
-    &.button-cancel {
-      background-color: colors.$button-cancel-background-color;
-
-      &:hover {
-        background-color: colors.$button-cancel-hover-background-color;
-      }
-    }
-
-    //Delete button
-    &.button-delete {
-      background-color: colors.$button-delete-background-color;
-      color: white;
-
-      &:hover {
-        background-color: colors.$button-delete-hover-background-color;
-      }
     }
   }
 
@@ -207,25 +110,6 @@ $wordpress-blue-light: #008bcc;
   // Search & filtering
   // ==================
   .search-bar {
-    padding: 6px 10px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-
-  .button-clear-inside {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    border: none;
-    background: transparent;
-    font-size: 1rem;
-    cursor: pointer;
-    color: #999;
-  }
-
-  .search-bar_old {
     width: calc(100% - 100px); // Να υπάρχει χώρος για το κουμπί
     padding: 8px;
     padding-right: 30px; // Αφήνουμε χώρο δεξιά για το κουμπί
@@ -233,12 +117,6 @@ $wordpress-blue-light: #008bcc;
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 14px;
-  }
-
-
-
-  .button-clear-inside:hover {
-    color: #333;
   }
 
   .button-clear {

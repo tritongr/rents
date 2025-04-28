@@ -7,15 +7,84 @@
 $wordpress-blue: hsl(199, 100%, 33%);
 $wordpress-blue-light: hsl(199, 100%, 40%);
 
+
 .items-wrapper {
   border: 1px solid#ddd;
-  padding: 10px;
+  padding: 0 0 3px 0;
   border-radius: 4px;
 
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch; // για smooth scrolling σε iOS
 
+  .button-clear-inside {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #999;
+  }
+
+  .button-clear-inside:hover {
+    color: #333;
+  }
+
+  // Grid version
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .table-header,
+  .table-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 2fr 1fr;
+    /* Μπορείς να το προσαρμόσεις */
+    min-width: 600px;
+    /* Μπορείς να το αλλάξεις για καλύτερο responsive */
+    background: #f8f8f8;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .table-header {
+    font-weight: bold;
+    background-color: #eaeaea;
+  }
+
+  .header-cell,
+  .body-cell {
+    padding: 10px;
+    border-right: 1px solid #ddd;
+  }
+
+  .header-cell:last-child,
+  .body-cell:last-child {
+    border-right: none;
+  }
+
+  .table-row:nth-child(even) {
+    background-color: #fafafa;
+  }
+
+  .table-row:nth-child(odd) {
+    background-color: #fafafa;
+  }
+
+  .active-row {
+    background-color: #e0ffe0 !important;
+  }
+
+  .sortable {
+    cursor: pointer;
+  }
+
+
+
+  // Table version
   table {
 
     border: 1px solid #ddd;

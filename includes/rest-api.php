@@ -726,8 +726,9 @@ function delete_item(WP_REST_Request $request)
  * Rent validation
  */
 
-function rentValidRecord($rent)
+function rentValidateRecord($rent)
 {
+
   // Έλεγχος: empty start_date, end_date
   if (empty($rent['start_date']) or empty($rent['end_date']) or strtotime($rent['start_date']) == '0000-00-00' or strtotime($rent['end_date']) == '0000-00-00') :
     return new WP_REST_Response(['error' => 'Η ημερομηνίες έναρξης & λήξης είναι υποχρεωτικές.'], 500);
@@ -831,7 +832,6 @@ function get_all_rents()
 /**
  * Create rent
  */
-
 function create_rent($request)
 {
   global $wpdb;
@@ -848,7 +848,7 @@ function create_rent($request)
       'end_date' => $rent['end_date'],
       'ret_date' => $rent['ret_date'],
       'paid_date' => $rent['paid_date'],
-      'last_update' => $rent['last_update'],
+      'last_modified' => current_time('mysql'),
       'notes' => $rent['notes'],
     ]);
 
@@ -924,7 +924,7 @@ function update_rent($request)
       'end_date' => $rent['end_date'],
       'ret_date' => $rent['ret_date'],
       'paid_date' => $rent['paid_date'],
-      'last_update' => $rent['last_update'],
+      'last_modified' => current_time('mysql'),
       'notes' => $rent['notes']
     ];
 
@@ -954,9 +954,7 @@ function update_rent($request)
       }
     }
 
-    return get_all_rents();
-    // return new WP_REST_Response(['updated' => true], 200);
-
+    return get_rent_by_id($id);
   } catch (Exception $e) { // On error
 
     return new WP_REST_Response(['error' => $e->getMessage()], 500);

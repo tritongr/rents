@@ -462,183 +462,115 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
       {/* Ο Πίνακας */}
       {
         isCollapsiblePanelOpen && (
-          <table >
+          <div className="customers-grid-wrapper">
+            {/* Header */}
+            <div className="customers-grid customers-grid-header">
+              <div className="sortable-column-header" onClick={() => handleSortToggle("name")}>
+                Όνομα ({sortedCustomers.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+              </div>
+              <div>Επικοινωνία</div>
+              <div>Σχόλια</div>
+              <div className="sortable-column-header" onClick={() => handleSortToggle("is_active")}>
+                Εκκρεμεί {sortColumn === "is_active" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+              </div>
+              <div>Actions</div>
+            </div>
 
-            {/* Table header */}
-            <thead className="">
-              <tr>
-                {/* Sortable column name */}
-                <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("name")}
-                >
-                  Όνομα ({sortedCustomers.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-                </th>
-                <th className="">Επικοινωνία</th>
-                <th className="">Σχόλια</th>
-                <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("is_active")}
-                >
-                  Εκκρεμεί {sortColumn === "is_active" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-                </th>
-                <th className="">Actions</th>
-              </tr>
-            </thead>
+            {/* Rows */}
+            {sortedCustomers.map(customer => (
+              <React.Fragment key={customer.id}>
+                <div
+                  className={`customers-grid ${customer.is_pending == 1 ? "pending-row" : ""}`}
+                  style={{ borderTop: "2px solid #0073a8", borderLeft: "2px solid #0073a8", borderRight: "2px solid #0073a8" }}
 
-            {/* Table data */}
-            <tbody>
-              {sortedCustomers.map(customer => (
-                <React.Fragment
-                  key={customer.id}
                 >
-                  <tr
-                    style={{ borderTop: "2px solid  #0073a8", borderRight: "2px solid  #0073a8", borderLeft: "2px solid  #0073a8" }}
-                    className={customer.is_pending == 1 ? "pending-row" : ""}>
+                  <div className="sortable-column-header" onClick={() => onEditClick(customer)}>
+                    {customer.name + " - "}
+                    <b>{customer.rents_count}</b>
+                    {customer.rents_pending_count > 0 ? "/" : ""}
+                    <span style={{ fontWeight: "bold", color: "red" }}>
+                      {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}
+                    </span>
+                  </div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>{customer.phone}</div>
+                  <div style={{ whiteSpace: "pre-wrap" }}>{customer.notes}</div>``
+                  <div style={{ textAlign: "center", whiteSpace: "pre-wrap" }}>
+                    <div dangerouslySetInnerHTML={{ __html: getIsPending(customer) }} />
+                  </div>
+                  <div className="action-buttons" style={{ display: "flex", flexWrap: "nowrap" }}>
+                    <button
+                      title={expandedCustomerIds.includes(customer.id) ? "Απόκρυψη ιστορικού" : "Εμφάνιση ιστορικού"}
+                      className="button-save"
+                      onClick={() => toggleExpandedCustomer(customer.id)}
+                    >
+                      <span className={`dashicons ${expandedCustomerIds.includes(customer.id) ? "dashicons-arrow-up-alt2" : "dashicons-arrow-down-alt2"}`} />
+                    </button>
+                    <button title="Επεξεργασία" className="button-edit" onClick={() => onEditClick(customer)} style={{ marginRight: 7 }}>
+                      <span className="dashicons dashicons-edit" />
+                    </button>
+                    <button title="Διαγραφή" className="button-delete" onClick={() => onDeleteClick(customer)} style={{ marginRight: 7 }}>
+                      <span className="dashicons dashicons-trash" />
+                    </button>
+                  </div>
+                </div>
 
-                    {/* Name */}
-                    <td
+                {/* Expanded rents */}
+                {expandedCustomerIds.includes(customer.id) && (
+                  <div
+                    className="expanded-container"
+                    style={{ borderBottom: "2px solid #0073a8", borderLeft: "2px solid #0073a8", borderRight: "2px solid #0073a8" }}
+                  >
+                    <h4
                       className="sortable-column-header"
-                      onClick={() => onEditClick(customer)}>
-                      {customer.name + " - "}
-
-                      <b>{customer.rents_count}</b>
+                      style={{ marginBottom: 10 }}
+                      onClick={() => toggleExpandedCustomer(customer.id)}
+                    >
+                      {getCustomerIcons(customer)} <b>{customer.rents_count}</b>
                       {customer.rents_pending_count > 0 ? "/" : ""}
-                      <span
-                        style={{ fontWeight: "bold", color: "red" }}
-                      >
+                      <span style={{ fontWeight: "bold", color: "red" }}>
                         {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}
                       </span>
+                      <strong>{customer.name}</strong> <span style={{ fontSize: "large" }}>ιστορικό ενοικιάσεων</span>
+                    </h4>
 
-                    </td>
+                    {/* Expanded rents grid */}
+                    <div className="expanded-rents-grid expanded-rents-header">
+                      <div></div>
+                      <div>Εξοπλισμός</div>
+                      <div>Έναρξη</div>
+                      <div>Λήξη</div>
+                      <div>Επιστροφή</div>
+                      <div>Πληρωμή</div>
+                      <div>Παρατηρήσεις</div>
+                    </div>
 
-                    {/* Phone */}
-                    <td style={{ whiteSpace: "pre-wrap" }}>{customer.phone}</td>
-
-                    {/* Notes */}
-                    <td style={{ whiteSpace: "pre-wrap" }}>{customer.notes}</td>
-
-                    {/* Is pending */}
-                    <td style={{ textAlign: "center", whiteSpace: 'pre-wrap' }}>
-                      <div dangerouslySetInnerHTML={{ __html: getIsPending(customer) }} />
-                    </td>
-
-                    {/* Actions */}
-                    <td>
-                      <div className="action-buttons">
-
-                        {/* Expand Rents */}
-                        <button
-                          title={
-                            expandedCustomerIds.includes(customer.id)
-                              ? "Απόκρυψη ιστορικού"
-                              : "Εμφάνιση ιστορικού"
-                          }
-                          className="button-save"
-                          onClick={() => toggleExpandedCustomer(customer.id)}
+                    {rents
+                      .filter(r => r.customer_id === customer.id)
+                      .map((rent, index) => (
+                        <div
+                          key={index}
+                          className="expanded-rents-grid"
+                          style={{ backgroundColor: isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? '#d6ffd6' : "#d6e8ff" }}
                         >
-                          <span className={`dashicons ${expandedCustomerIds.includes(customer.id)
-                            ? "dashicons-arrow-up-alt2"
-                            : "dashicons-arrow-down-alt2"
-                            }`}></span>
-                        </button>
-
-                        {/* Edit button */}
-                        <button
-                          title="Επεξεργασία"
-                          className="button-edit"
-                          onClick={() => onEditClick(customer)}
-                          style={{ marginRight: 7 }}
-                        >
-                          <span className="dashicons dashicons-edit"></span>
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          title="Διαγραφή"
-                          className="button-delete"
-                          onClick={() => onDeleteClick(customer)}
-                          style={{ marginRight: 7 }}>
-                          <span class="dashicons dashicons-trash"></span>
-                        </button>
-
-                      </div>
-                    </td>
-                  </tr>
-
-                  {/* Expanded rents row */}
-                  {
-                    expandedCustomerIds.includes(customer.id) && (
-                      <tr
-                        className="expanded-row"
-                        style={{ borderBottom: "2px solid  #0073a8", borderRight: "2px solid  #0073a8", borderLeft: "2px solid  #0073a8" }}
-                      >
-                        <td colSpan={5}>
-                          <div className="expanded-container">
-                            <h4
-                              className="sortable-column-header"
-                              style={{ marginBottom: 10 }}
-                              onClick={() => toggleExpandedCustomer(customer.id)}
-                            >
-
-                              {getCustomerIcons(customer)}{" "}
-                              <b> {customer.rents_count}</b>
-                              {customer.rents_pending_count > 0 ? "/" : ""}
-                              <span
-                                style={{ fontWeight: "bold", color: "red" }}
-                              >
-                                {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}{" "}
-                              </span>
-
-                              <strong>
-                                {customer.name}
-                              </strong>
-
-                              <span style={{ fontSize: "large" }}> ιστορικό ενοικιάσεων</span>
-                            </h4>
-
-                            <table className="expanded-rents-table">
-                              <thead>
-                                <tr>
-                                  {/* Empty first column just for spacing */}
-                                  <th style={{ width: "5%" }}></th>
-                                  <th style={{ textAlign: "center" }} >Εξοπλισμός</th>
-                                  <th style={{ textAlign: "center" }} >Έναρξη</th>
-                                  <th style={{ textAlign: "center" }} >Λήξη</th>
-                                  <th style={{ textAlign: "center" }} >Επιστροφή</th>
-                                  <th style={{ textAlign: "center" }} >Πληρωμή</th>
-                                  <th style={{ textAlign: "center" }}>Παρατηρήσεις</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {rents
-                                  .filter(r => r.customer_id === customer.id)
-                                  .map((rent, index) => (
-                                    <tr
-                                      key={index}
-                                      // backgroundColor: isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? '#d6ffd6' : "#d6e8ff" }classname={isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? "active-row" : ""}
-                                      style={{ backgroundColor: isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? '#d6ffd6' : "#d6e8ff" }}
-                                    >
-                                      <td>{getRentIcons(rent, customer)} </td> {/* empty spacing cell */}
-                                      <td>{getRentedItemsNames(rent.items)}</td>
-                                      <td style={{ textAlign: "center" }} >{formatDateMidium(rent.start_date)}</td>
-                                      <td style={{ textAlign: "center" }} >{formatDateMidium(rent.end_date)}</td>
-                                      <td style={{ textAlign: "center" }} >{isValidDate(rent.ret_date) ? formatDateMidium(rent.ret_date) : "-"}</td>
-                                      <td style={{ textAlign: "center" }} >{isValidDate(rent.paid_date) ? formatDateMidium(rent.paid_date) : "-"}</td>
-                                      <td style={{ textAlign: "center", whiteSpace: 'pre-wrap', textAlign: "left" }} >{rent.notes}</td>
-                                    </tr>
-                                  ))}
-                              </tbody>
-                            </table>
+                          <div style={{ display: "flex", flexWrap: "nowrap" }}>{getRentIcons(rent, customer)}</div>
+                          <div>{getRentedItemsNames(rent.items)}</div>
+                          <div style={{ textAlign: "center" }}>{formatDateMidium(rent.start_date)}</div>
+                          <div style={{ textAlign: "center" }}>{formatDateMidium(rent.end_date)}</div>
+                          <div style={{ textAlign: "center" }}>
+                            {isValidDate(rent.ret_date) ? formatDateMidium(rent.ret_date) : "-"}
                           </div>
-                        </td>
-                      </tr>
-                    )
-                  }
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
+                          <div style={{ textAlign: "center" }}>
+                            {isValidDate(rent.paid_date) ? formatDateMidium(rent.paid_date) : "-"}
+                          </div>
+                          <div style={{ textAlign: "left", whiteSpace: "pre-wrap" }}>{rent.notes}</div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+
         )
       }
 

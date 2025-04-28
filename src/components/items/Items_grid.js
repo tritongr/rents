@@ -278,7 +278,7 @@ function Items({ items, setItems, nullItem, API }) {
     <div className="items-wrapper">
 
       {/* Collapsible header */}
-      <div>
+      <div style={{ margn: "0" }}>
         <CollapsibleHeader
           title="📺 Εξοπλισμός"
           isCollapsiblePanelOpen={isCollapsiblePanelOpen}
@@ -363,82 +363,76 @@ function Items({ items, setItems, nullItem, API }) {
       {/* Ο Πίνακας */}
       {
         isCollapsiblePanelOpen && (
-          <table className="">
+          <div className="table-wrapper">
+            {/* Table Header */}
+            <div className="table-header">
+              <div className="header-cell sortable" onClick={() => handleSortToggle("name")}>
+                Όνομασία ({filteredItems.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+              </div>
+              <div className="header-cell">Διαθέσιμο</div>
+              <div className="header-cell">Σχόλια</div>
+              <div className="header-cell">Actions</div>
+            </div>
 
-            {/* Table header */}
-            <thead className="">
-              <tr>
-                {/* Sortable column name */}
-                {/* Όνομασία */}
-                <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("name")}
+            {/* Table Body */}
+            <div className="table-body">
+              {sortedItems.map((item) => (
+                <div
+                  key={item.id}
+                  className={`table-row ${item.is_rented != 1 ? "active-row" : ""}`}
                 >
-                  Όνομασία ({filteredItems.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-                </th>
-
-                {/* Διαθέσιμο */}
-                <th
-                  className=""
-                >
-                  Διαθέσιμο
-                </th>
-
-                {/* Σχόλια */}
-                <th className="">Σχόλια</th>
-
-                {/* Actions */}
-                <th className="">Actions</th>
-              </tr>
-            </thead>
-
-            {/* Table data */}
-            <tbody>
-              {
-                // Filtered + Sorted items
-                sortedItems.map(item => (
-                  <tr
-                    key={item.id}
-                    className={item.is_rented != 1 ? "active-row" : ""}
+                  {/* Name */}
+                  <div
+                    className="body-cell sortable"
+                    onClick={() => onEditClick(item)}
                   >
-                    {/* Name */}
-                    <td className="sortable-column-header" onClick={() => onEditClick(item)}>{item.name}</td>
+                    {item.name}
+                  </div>
 
-                    {/* Is Available */}
-                    <td style={{ textAlign: "center", whiteSpace: 'pre-wrap' }} >
-                      <div dangerouslySetInnerHTML={{ __html: getIsAvailable(item) }} />
-                    </td>
+                  {/* Is Available */}
+                  <div
+                    className="body-cell"
+                    style={{ textAlign: "center", whiteSpace: "pre-wrap" }}
+                  >
+                    <div dangerouslySetInnerHTML={{ __html: getIsAvailable(item) }} />
+                  </div>
 
-                    {/* Description */}
-                    <td style={{ whiteSpace: "pre-wrap" }}>{item.description}</td>
+                  {/* Description */}
+                  <div
+                    className="body-cell"
+                    style={{ whiteSpace: "pre-wrap" }}
+                  >
+                    {item.description}
+                  </div>
 
-                    {/* Action buttons */}
-                    <td>
-                      <div id="action-buttons">
-                        {/* Edit button */}
-                        <button
-                          title="Επεξεργασία γραμμής"
-                          className="button-edit"
-                          onClick={() => onEditClick(item)}
-                          style={{ marginRight: 7 }}
-                        >
-                          <span className="dashicons dashicons-edit"></span>
-                        </button>
+                  {/* Actions */}
+                  <div className="body-cell" >
+                    <div id="action-buttons" style={{ display: "flex", flexWrap: "nowrap" }} >
+                      {/* Edit button */}
+                      < button
+                        title="Επεξεργασία γραμμής"
+                        className="button-edit"
+                        onClick={() => onEditClick(item)}
+                        style={{ marginRight: 7 }}
+                      >
+                        <span className="dashicons dashicons-edit"></span>
+                      </button>
 
-                        {/* Delete button */}
-                        <button
-                          title="Διαγραφή γραμμής"
-                          className="button-delete"
-                          onClick={() => onDeleteClick(item)}
-                        >
-                          <span class="dashicons dashicons-trash"></span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>))
-              }
-            </tbody>
-          </table>
+                      {/* Delete button */}
+                      <button
+                        title="Διαγραφή γραμμής"
+                        className="button-delete"
+                        onClick={() => onDeleteClick(item)}
+                      >
+                        <span className="dashicons dashicons-trash"></span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div >
+
         )
       }
 

@@ -156,9 +156,6 @@ export function RentModal({
     );
   };
 
-
-
-
   function getItems() {
 
     const richItems = items.map(i => {

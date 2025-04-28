@@ -9,12 +9,73 @@ $wordpress-blue-light: lab(54.89% -7.52 -42.17);
 
 .customers-wrapper {
   border: 1px solid#ddd;
-  padding: 10px;
+  padding: 0 0 3px 0;
   border-radius: 4px;
 
   width: 100%;
   overflow-x: auto;
+  max-width: 100%;
+  position: relative;
+
   -webkit-overflow-scrolling: touch; // για smooth scrolling σε iOS
+
+  &::after {
+    content: '';
+    display: block;
+    height: 1px;
+  }
+
+
+  // Styles για Grid
+  .customers-grid-wrapper {
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .customers-grid,
+  .expanded-rents-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 2fr 1fr 1.5fr;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    min-width: 768px;
+    /* Για να υπάρχει horizontal scroll αν μικρύνει */
+  }
+
+  .customers-grid-header {
+    font-weight: bold;
+    background-color: #f0f0f0;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .expanded-container {
+    padding: 1rem;
+  }
+
+  .expanded-rents-header {
+    font-weight: bold;
+    background-color: #e0e0e0;
+  }
+
+  .expanded-rents-grid {
+    grid-template-columns: 0.5fr 2fr 1fr 1fr 1fr 1fr 2fr;
+    padding: 0.5rem 0;
+  }
+
+  /* Optional: Highlight στην pending-row */
+  .pending-row {
+    background-color: #fff6e5;
+  }
+
+
+
+
+
+
+  // Styles για <table>
 
   // Ο hanging table
   .expanded-rents-table {
@@ -212,6 +273,22 @@ $wordpress-blue-light: lab(54.89% -7.52 -42.17);
       background-color: hsla(0, 0%, 100%, 0);
     }
 
+  }
+
+  .button-clear-inside {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #999;
+  }
+
+  .button-clear-inside:hover {
+    color: #333;
   }
 
   .active-filter {
