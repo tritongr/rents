@@ -90,7 +90,7 @@ export function RentModal({
   }
 
   // Styles για Items dropdown
-  const selectItemsStyle = {
+  const itemsStyles = {
     control: (styles) => ({ ...styles, textAlign: "left", backgroundColor: "#D7FEC8" }), // the div control wrapper
     option: (styles, state) => {
       return ({
@@ -102,12 +102,6 @@ export function RentModal({
     multiValue: (styles, state) => ({ ...styles, backgroundColor: "#8BE78B", color: "black" }), // η λίστα με τα options
     multiValueLabel: (styles, state) => ({ ...styles, textAlign: "left", color: "black" }), // η λίστα με τα options
     multiValueRemove: (styles, state) => ({ ...styles, cursor: "pointer", }), // το x που το διαγράφει
-    valueContainer: (provided) => ({
-      ...provided,
-      maxHeight: "6em", // περίπου 4 γραμμές (δοκίμασε 5em ή 6em)
-      overflowY: "auto",
-      flexWrap: "wrap",
-    }),
   }
 
   /**
@@ -156,17 +150,46 @@ export function RentModal({
     );
   };
 
+  // Custom Option
+  const CustomOption = (props) => {
+    const {
+      data,
+      innerRef,
+      innerProps,
+      isFocused,
+      isSelected,
+      getStyles
+    } = props;
+
+    const style = getStyles('option', props); // ⬅️ Παίρνουμε το style από το custom styles object
+
+    return (
+      <div
+        ref={innerRef}
+        {...innerProps}
+        title={data.tooltip}
+        style={style} // ⬅️ Επαναφορά του styling!
+      >
+        {data.label}
+      </div>
+    );
+  };
+
   function getItems() {
 
+    // Loop στα items
     const richItems = items.map(i => {
 
       var iLabel = ""
       var iIcon = ""
       var isDisabled = false
+      var toolTip = ""
 
+      // Αν υπάρχουν iActiveRentDates τα βάζουμε στο iLabel
+      if (i.active_rents.length > 0) {
 
-      if (i.active_rents.length > 0) { // Αν υπάρχουν iActiveRentDates τα βάζουμε στο iLabel
-
+        // Loop στα των active rents του κάθε item 
+        // για επιστροφή των start_date - end_date του κάθε rent
         const iActiveRentDates = i.active_rents.map(ar => {
           if (isDatePast(ar.start_date)) {
             iIcon = "❌ "
@@ -176,8 +199,14 @@ export function RentModal({
               iIcon = "📅 "
             }
           }
-
           return formatDateShort(ar.start_date) + "-" + formatDateShort(ar.end_date)
+        }
+        ).toString()
+
+        // Loop στα των active rents του κάθε item 
+        // για επιστροφή του customer_name
+        toolTip = i.active_rents.map(ar => {
+          return ar.customer_name
         }
         ).toString()
 
@@ -187,12 +216,11 @@ export function RentModal({
         iLabel = i.name
       }
 
-      return { label: iLabel, value: parseInt(i.id) }
+      return { label: iLabel, value: parseInt(i.id), value: parseInt(i.id), tooltip: toolTip }
 
-      //return ({ label: (i.is_rented == 1 ? "❌ " : "") + i.name, value: parseInt(i.id) }))
     }
     )
-
+    console.log(richItems)
     return richItems
   }
 
@@ -229,18 +257,16 @@ export function RentModal({
           {/* Items multi select */}
           <Select
             placeholder="Επιλέξτε εξοπλισμό..."
-            //  components={{ Option: CheckboxOption }}
-            closeMenuOnSelect={false} // σημαντικό για να ΜΗΝ κλείνει κάθε φορά
-            options={getItems()}
 
-            // options={
-            //   items.map(i => ({ label: (i.is_rented == 1 ? "❌ " : "") + i.name, value: parseInt(i.id) }))
-            // }
+            closeMenuOnSelect={false} // σημαντικό για να ΜΗΝ κλείνει κάθε φορά
+
+            components={{ Option: CustomOption }}
+            options={getItems()}
 
             value={selectedItems}
             onChange={selection => setSelectedItems(selection)}
             isMulti
-            styles={selectItemsStyle}
+            styles={itemsStyles}
           />
 
           {/* Notes */}

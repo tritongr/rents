@@ -1,6 +1,6 @@
 /** 
-* Customers styles
-*/
+ * Rents styles
+ */
 
 @use '../utilities/colors.scss';
 
@@ -16,6 +16,10 @@ $wordpress-blue-light: #008bcc;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch; // για smooth scrolling σε iOS
 
+  .only-on-pdf {
+    display: none !important;
+  }
+
   // Hide on mobiles
   @media (max-width: 768px) {
     .hide-on-mobile {
@@ -29,6 +33,111 @@ $wordpress-blue-light: #008bcc;
       display: none;
     }
   }
+
+  /*  
+ * PDF Classes
+ */
+  .notes-cell {
+    font-size: small;
+    white-space: pre-wrap;
+    cursor: pointer;
+    background-color: #eef6ff;
+  }
+
+  .notes-cell.hovered {
+    background-color: #c0d3e8;
+  }
+
+  .notes-content.truncated {
+    display: inline;
+  }
+
+  .notes-content.full {
+    display: none;
+  }
+
+  /* Εναλλαγή στην εκτύπωση PDF */
+  .only-on-pdf {
+    display: none;
+    /* Κρύβουμε το στοιχείο στην οθόνη */
+  }
+
+  @media print {
+    .only-on-pdf {
+      display: block !important;
+      /* Εμφανίζουμε το στοιχείο κατά την εκτύπωση */
+    }
+
+    .notes-content.truncated {
+      display: none !important;
+    }
+
+    .notes-content.full {
+      display: inline !important;
+    }
+
+    #rents-table {
+      width: 100% !important;
+      max-width: 190mm !important;
+      overflow: hidden !important;
+    }
+
+    table {
+      table-layout: auto !important;
+    }
+  }
+
+  /**
+ * Top section 
+ */
+
+  // Wrapper των add new button, checkboxes, search box
+  #rent-top-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 0.3rem;
+    padding: 6px 0 6px 0;
+    width: 100%;
+    font-size: small;
+  }
+
+  // New button
+  #rent-new-button {
+    flex: 0 0 auto;
+  }
+
+  // Τα checkboxes
+  #rent-checkboxes {
+    flex: 1 1 auto;
+    min-width: 250px;
+    text-align: center;
+  }
+
+  // Search box
+  #rent-search-bar {
+    flex: 0 0 auto;
+  }
+
+  @media (max-width: 768px) {
+    #rent-new-button {
+      flex-basis: 5%;
+      order: 0;
+    }
+
+    #rent-checkboxes {
+      flex-basis: 75%;
+      order: 1;
+    }
+
+    #rent-search-bar {
+      flex-basis: 100%;
+      order: 2;
+    }
+  }
+
 
   //  Fade in για το help modal
   .fade-in {
@@ -66,45 +175,52 @@ $wordpress-blue-light: #008bcc;
       }
     }
 
+    // Πελάτης
     th:nth-child(1),
     td:nth-child(1) {
       width: 18%;
     }
 
+    // Είδη
     th:nth-child(2),
     td:nth-child(2) {
       width: 15%;
     }
 
+    // Έναρξη
     th:nth-child(3),
     td:nth-child(3) {
-      width: 12%;
+      width: 10%;
     }
 
+    // Λήξη
     th:nth-child(4),
     td:nth-child(4) {
-      width: 12%;
+      width: 10%;
     }
 
+    // Επιστροφή
     th:nth-child(5),
     td:nth-child(5) {
       width: 10%;
     }
 
-
+    // Εξόφληση
     th:nth-child(6),
     td:nth-child(6) {
       width: 10%;
     }
 
-    th:nth-child(8),
-    td:nth-child(8) {
-      width: 12%;
+    // Παρατρήσεις
+    th:nth-child(7),
+    td:nth-child(7) {
+      width: 20%;
     }
 
-    th,
-    td {
-      width: auto;
+    // Actions
+    th:nth-child(8),
+    td:nth-child(8) {
+      width: 6%;
     }
 
     th {

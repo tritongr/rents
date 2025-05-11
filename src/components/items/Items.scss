@@ -231,66 +231,68 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
 
     text-align: center;
 
-    button {
-      // display: flex;
-      align-items: center;
-      // gap: 5px; // Απόσταση μεταξύ εικονιδίου & κειμένου
-      font-size: 14px;
-      padding: 6px 12px;
-      margin-right: 5px;
-      border: none !important;
-      cursor: pointer;
-      color: white !important;
-      transition: background-color 0.5s ease;
+
+
+  }
+
+  button {
+    // display: flex;
+    align-items: center;
+    // gap: 5px; // Απόσταση μεταξύ εικονιδίου & κειμένου
+    font-size: 14px;
+    padding: 6px 12px;
+    margin-right: 5px;
+    border: none !important;
+    cursor: pointer;
+    color: white !important;
+    transition: background-color 0.5s ease;
+
+    &:hover {
+      background-color: hsl(59, 95%, 59%);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    // Edit button
+    &.button-edit,
+    &.button-add {
+      background-color: colors.$button-edit-background-color;
 
       &:hover {
-        background-color: hsl(59, 95%, 59%);
-      }
-
-      &:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-      }
-
-      // Edit button
-      &.button-edit,
-      &.button-add {
-        background-color: colors.$button-edit-background-color;
-
-        &:hover {
-          background-color: colors.$button-edit-hover-background-color
-        }
-      }
-
-      // Save button
-      &.button-save {
-        background-color: colors.$button-save-background-color;
-
-        &:hover {
-          background-color: colors.$button-save-hover-background-color;
-        }
-      }
-
-      //Cancel button
-      &.button-cancel {
-        background-color: colors.$button-cancel-background-color;
-
-        &:hover {
-          background-color: colors.$button-cancel-hover-background-color;
-        }
-      }
-
-      //Delete button
-      &.button-delete {
-        background-color: colors.$button-delete-background-color;
-        color: white;
-
-        &:hover {
-          background-color: colors.$button-delete-hover-background-color;
-        }
+        background-color: colors.$button-edit-hover-background-color
       }
     }
 
+    // Save button
+    &.button-save {
+      background-color: colors.$button-save-background-color;
+
+      &:hover {
+        background-color: colors.$button-save-hover-background-color;
+      }
+    }
+
+    //Cancel button
+    &.button-cancel {
+      background-color: colors.$button-cancel-background-color;
+
+      &:hover {
+        background-color: colors.$button-cancel-hover-background-color;
+      }
+    }
+
+    //Delete button
+    &.button-delete {
+      background-color: colors.$button-delete-background-color;
+      color: white;
+
+      &:hover {
+        background-color: colors.$button-delete-hover-background-color;
+      }
+    }
   }
 
 }

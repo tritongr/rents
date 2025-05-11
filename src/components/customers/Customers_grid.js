@@ -462,113 +462,103 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
       {/* Ο Πίνακας */}
       {
         isCollapsiblePanelOpen && (
-          <div className="customers-grid-wrapper">
-            {/* Header */}
-            <div className="customers-grid customers-grid-header">
-              <div className="sortable-column-header" onClick={() => handleSortToggle("name")}>
-                Όνομα ({sortedCustomers.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-              </div>
-              <div>Επικοινωνία</div>
-              <div>Σχόλια</div>
-              <div className="sortable-column-header" onClick={() => handleSortToggle("is_active")}>
-                Εκκρεμεί {sortColumn === "is_active" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-              </div>
-              <div>Actions</div>
-            </div>
+          <div className="grid-wrapper">
+            <div className="customers-grid">
 
-            {/* Rows */}
-            {sortedCustomers.map(customer => (
-              <React.Fragment key={customer.id}>
-                <div
-                  className={`customers-grid ${customer.is_pending == 1 ? "pending-row" : ""}`}
-                  style={{ borderTop: "2px solid #0073a8", borderLeft: "2px solid #0073a8", borderRight: "2px solid #0073a8" }}
+              {/* Header */}
+              <div className="grid-cell">Όνομα</div>
+              <div className="grid-cell">Επικοινωνία</div>
+              <div className="grid-cell">Σχόλια</div>
+              <div className="grid-cell">Εκκρεμεί</div>
+              <div className="grid-cell">Actions</div>
 
-                >
-                  <div className="sortable-column-header" onClick={() => onEditClick(customer)}>
-                    {customer.name + " - "}
-                    <b>{customer.rents_count}</b>
-                    {customer.rents_pending_count > 0 ? "/" : ""}
-                    <span style={{ fontWeight: "bold", color: "red" }}>
-                      {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}
-                    </span>
+              {/* Πελάτες */}
+              {sortedCustomers.map(customer => (
+                <React.Fragment key={customer.id}>
+                  <div
+                    className="grid-cell left"
+                    onClick={() => onEditClick(customer)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {customer.name} - <b>{customer.rents_count}</b>
+                    {customer.rents_pending_count > 0 && (
+                      <span style={{ fontWeight: "bold", color: "red" }}>
+                        /{customer.rents_pending_count}
+                      </span>
+                    )}
                   </div>
-                  <div style={{ whiteSpace: "pre-wrap" }}>{customer.phone}</div>
-                  <div style={{ whiteSpace: "pre-wrap" }}>{customer.notes}</div>``
-                  <div style={{ textAlign: "center", whiteSpace: "pre-wrap" }}>
+
+                  <div className="grid-cell left">{customer.phone}</div>
+                  <div className="grid-cell left">{customer.notes}</div>
+                  <div className="grid-cell">
                     <div dangerouslySetInnerHTML={{ __html: getIsPending(customer) }} />
                   </div>
-                  <div className="action-buttons" style={{ display: "flex", flexWrap: "nowrap" }}>
-                    <button
-                      title={expandedCustomerIds.includes(customer.id) ? "Απόκρυψη ιστορικού" : "Εμφάνιση ιστορικού"}
-                      className="button-save"
-                      onClick={() => toggleExpandedCustomer(customer.id)}
-                    >
-                      <span className={`dashicons ${expandedCustomerIds.includes(customer.id) ? "dashicons-arrow-up-alt2" : "dashicons-arrow-down-alt2"}`} />
-                    </button>
-                    <button title="Επεξεργασία" className="button-edit" onClick={() => onEditClick(customer)} style={{ marginRight: 7 }}>
-                      <span className="dashicons dashicons-edit" />
-                    </button>
-                    <button title="Διαγραφή" className="button-delete" onClick={() => onDeleteClick(customer)} style={{ marginRight: 7 }}>
-                      <span className="dashicons dashicons-trash" />
-                    </button>
-                  </div>
-                </div>
 
-                {/* Expanded rents */}
-                {expandedCustomerIds.includes(customer.id) && (
-                  <div
-                    className="expanded-container"
-                    style={{ borderBottom: "2px solid #0073a8", borderLeft: "2px solid #0073a8", borderRight: "2px solid #0073a8" }}
-                  >
-                    <h4
-                      className="sortable-column-header"
-                      style={{ marginBottom: 10 }}
-                      onClick={() => toggleExpandedCustomer(customer.id)}
-                    >
-                      {getCustomerIcons(customer)} <b>{customer.rents_count}</b>
-                      {customer.rents_pending_count > 0 ? "/" : ""}
-                      <span style={{ fontWeight: "bold", color: "red" }}>
-                        {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}
-                      </span>
-                      <strong>{customer.name}</strong> <span style={{ fontSize: "large" }}>ιστορικό ενοικιάσεων</span>
-                    </h4>
+                  <div className="grid-cell">
+                    <div className="action-buttons">
+                      <button
+                        className="button-save"
+                        title={expandedCustomerIds.includes(customer.id) ? "Απόκρυψη ιστορικού" : "Εμφάνιση ιστορικού"}
+                        onClick={() => toggleExpandedCustomer(customer.id)}
+                      >
+                        <span className={`dashicons ${expandedCustomerIds.includes(customer.id)
+                          ? "dashicons-arrow-up-alt2"
+                          : "dashicons-arrow-down-alt2"}`}></span>
+                      </button>
 
-                    {/* Expanded rents grid */}
-                    <div className="expanded-rents-grid expanded-rents-header">
-                      <div></div>
-                      <div>Εξοπλισμός</div>
-                      <div>Έναρξη</div>
-                      <div>Λήξη</div>
-                      <div>Επιστροφή</div>
-                      <div>Πληρωμή</div>
-                      <div>Παρατηρήσεις</div>
+                      <button
+                        className="button-edit"
+                        title="Επεξεργασία"
+                        onClick={() => onEditClick(customer)}
+                      >
+                        <span className="dashicons dashicons-edit"></span>
+                      </button>
+
+                      <button
+                        className="button-delete"
+                        title="Διαγραφή"
+                        onClick={() => onDeleteClick(customer)}
+                      >
+                        <span className="dashicons dashicons-trash"></span>
+                      </button>
                     </div>
-
-                    {rents
-                      .filter(r => r.customer_id === customer.id)
-                      .map((rent, index) => (
-                        <div
-                          key={index}
-                          className="expanded-rents-grid"
-                          style={{ backgroundColor: isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? '#d6ffd6' : "#d6e8ff" }}
-                        >
-                          <div style={{ display: "flex", flexWrap: "nowrap" }}>{getRentIcons(rent, customer)}</div>
-                          <div>{getRentedItemsNames(rent.items)}</div>
-                          <div style={{ textAlign: "center" }}>{formatDateMidium(rent.start_date)}</div>
-                          <div style={{ textAlign: "center" }}>{formatDateMidium(rent.end_date)}</div>
-                          <div style={{ textAlign: "center" }}>
-                            {isValidDate(rent.ret_date) ? formatDateMidium(rent.ret_date) : "-"}
-                          </div>
-                          <div style={{ textAlign: "center" }}>
-                            {isValidDate(rent.paid_date) ? formatDateMidium(rent.paid_date) : "-"}
-                          </div>
-                          <div style={{ textAlign: "left", whiteSpace: "pre-wrap" }}>{rent.notes}</div>
-                        </div>
-                      ))}
                   </div>
-                )}
-              </React.Fragment>
-            ))}
+
+                  {/* Expanded Rents */}
+                  {expandedCustomerIds.includes(customer.id) && (
+                    <div className="grid-wrapper" style={{ gridColumn: "1 / -1", marginTop: "10px" }}>
+                      <div className="rents-grid">
+
+                        {/* Header */}
+                        <div className="grid-cell"></div>
+                        <div className="grid-cell">Εξοπλισμός</div>
+                        <div className="grid-cell">Έναρξη</div>
+                        <div className="grid-cell">Λήξη</div>
+                        <div className="grid-cell">Επιστροφή</div>
+                        <div className="grid-cell">Πληρωμή</div>
+                        <div className="grid-cell">Παρατηρήσεις</div>
+
+                        {/* Rents του πελάτη */}
+                        {rents
+                          .filter(r => r.customer_id === customer.id)
+                          .map((rent, index) => (
+                            <React.Fragment key={index}>
+                              <div className="grid-cell">{getRentIcons(rent, customer)}</div>
+                              <div className="grid-cell left">{getRentedItemsNames(rent.items)}</div>
+                              <div className="grid-cell">{formatDateMidium(rent.start_date)}</div>
+                              <div className="grid-cell">{formatDateMidium(rent.end_date)}</div>
+                              <div className="grid-cell">{isValidDate(rent.ret_date) ? formatDateMidium(rent.ret_date) : "-"}</div>
+                              <div className="grid-cell">{isValidDate(rent.paid_date) ? formatDateMidium(rent.paid_date) : "-"}</div>
+                              <div className="grid-cell left">{rent.notes}</div>
+                            </React.Fragment>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+
+            </div>
           </div>
 
         )

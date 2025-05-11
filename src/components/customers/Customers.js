@@ -8,6 +8,8 @@
 import "./Customers.scss"
 import { isValidDate, isDatePast, formatDateShort, formatDateMidium } from "../../utilities/functionsLib"
 
+import html2pdf from 'html2pdf.js'
+
 import React, { useState, useEffect, useRef } from "react"
 import axios from "axios"
 import { toast } from 'react-toastify'
@@ -296,19 +298,6 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
     }
 
     return "Ναι " + parcelIcon + dollarIcon
-
-    statusIcon = "Ναι 📅 "
-
-    const cActiveRents = customer.active_rents.map(ar => {
-      console.log("customer: ", customer)
-      if (isDatePast(ar.end_date) && customer.nopaid == 1) {
-        statusIcon = "Ναι ❌ "
-      }
-      const items = ar.items.map(i => i.name)
-      return "<b>" + formatDateShort(ar.start_date) + "-" + formatDateShort(ar.end_date) + "</b>" + ": " + items
-    })
-
-    return statusIcon + parcelIcon + dollarIcon + "\n" + cActiveRents.join("\n")
   }
 
   /**
@@ -349,6 +338,85 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
   }
 
   /**
+      *  PDF Download
+      */
+
+  // Handlers στο container div του πίνακα και το h3 του τίτλου
+  const tableRef = useRef(null)
+  const titleRef = useRef(null)
+
+  async function handleDownloadPdf() {
+
+    // To conainer div των h3 και title 
+    const element = document.querySelector('.pdf-container')
+
+    // Απόκρυψη τελευταίας στήλης
+    // ==========================
+    // Βρίσκουμε όλους τους headers της τελευταίας στήλης (αν υπάρχουν)
+    const lastColumnHeaders = element.querySelectorAll('thead tr th:last-child');
+
+    // Βρίσκουμε όλα τα cells της τελευταίας στήλης
+    const lastColumnCells = element.querySelectorAll('tbody tr td:last-child');
+
+    // Προσθέτουμε in-line styles για απόκρυψη στην τελευταία στήλη
+    lastColumnHeaders.forEach(header => header.style.display = 'none');
+    lastColumnCells.forEach(cell => cell.style.display = 'none');
+
+    // Προσθέτουμε την κλάση για απόκρυψη
+    // lastColumnHeaders.forEach(header => header.classList.add('hide-on-pdf'));
+    // lastColumnCells.forEach(cell => cell.classList.add('hide-on-pdf'));
+
+    // Εμφάνιση του pdf Header
+    // =======================
+    // Το h3 του pdf title
+    const titleElement = titleRef.current;
+
+    // Αποθηκεύουμε την αρχική τιμή του display (αν υπάρχει)
+    const originalDisplay = titleElement.style.display
+    const originalText = titleElement.textContent; // Αποθηκεύουμε το αρχικό κείμενο (αν υπάρχει)
+
+    // Εμφανίζουμε τον τίτλο προσωρινά
+    titleElement.style.display = 'block';
+
+    // Timestamp
+    // =========
+    const now = new Date()
+    // const timestamp = (now.toISOString().slice(0, 19).replace(/T/, '_').replace(/:/g, '-'))
+    const timestamp = now.toLocaleString('el-GR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+    const fullTitle = `ΠΕΛΑΤΕΣ στις ${timestamp}`;
+    const filename = `Rents_Customers_${timestamp}.pdf`
+
+    // Ενημερώνουμε το κείμενο του τίτλου και το εμφανίζουμε προσωρινά
+    titleElement.textContent = fullTitle;
+    titleElement.style.display = 'block';
+
+    // Τα options του html2pdf
+    const opt = {
+      margin: 10,
+      filename, //`Rents_${timestamp.replace(/[\/: ]/g, '-')}.pdf`, // Χρησιμοποιούμε το timestamp στο filename
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    }
+
+    // Δημιουργία του PDF
+    // ==================
+    html2pdf().from(element).set(opt).save().finally(() => {
+
+      // Επαναφέρουμε το αρχικό κείμενο και την εμφάνιση του h3
+      titleElement.textContent = originalText;
+      titleElement.style.display = originalDisplay;
+
+      // Επαναφορά της τελευταίας στήλης
+      // lastColumnHeaders.forEach(header => header.classList.remove('hide-on-pdf'));
+      // lastColumnCells.forEach(cell => cell.classList.remove('hide-on-pdf'));
+      lastColumnHeaders.forEach(header => header.style.display = ''); // ή την προηγούμενη τιμή αν την είχες αποθηκεύσει
+      lastColumnCells.forEach(cell => cell.style.display = '');
+
+    })
+  }
+
+  /**
    *  Rendering
    */
   return (
@@ -377,7 +445,7 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
         >
           {/* Buttons */}
           <div id="rent-new-button" style={{ flex: "0 0 auto" }}>
-            {/* Add New Customer Button */}
+            {/* Add New + PDF buttons */}
             <button
               title="Νέος πελάτης"
               onClick={onAddClick}
@@ -385,6 +453,14 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
               style={{ margin: "5px 5px 5px 0" }}
             >
               <span style={{ marginTop: "2px" }} class="dashicons dashicons-plus-alt2"></span>
+            </button>
+
+            <button
+              title="Download PDF"
+              onClick={handleDownloadPdf}
+              className="button-delete hide-on-mobile"
+            >
+              <span class="dashicons dashicons-download"></span>
             </button>
 
             {/* Global expand/collapse button */}
@@ -462,183 +538,187 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
       {/* Ο Πίνακας */}
       {
         isCollapsiblePanelOpen && (
-          <table >
+          <div className="pdf-container">
+            <h3 ref={titleRef} style={{ display: 'none', textAlign: 'center', marginBottom: '10px' }}>ΠΕΛΑΤΕΣ</h3>
+            <table className="" ref={tableRef}></table>
+            <table ref={tableRef}>
 
-            {/* Table header */}
-            <thead className="">
-              <tr>
-                {/* Sortable column name */}
-                <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("name")}
-                >
-                  Όνομα ({sortedCustomers.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-                </th>
-                <th className="">Επικοινωνία</th>
-                <th className="">Σχόλια</th>
-                <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("is_active")}
-                >
-                  Εκκρεμεί {sortColumn === "is_active" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-                </th>
-                <th className="">Actions</th>
-              </tr>
-            </thead>
+              {/* Table header */}
+              <thead className="">
+                <tr>
+                  {/* Sortable column name */}
+                  <th
+                    className="sortable-column-header"
+                    onClick={() => handleSortToggle("name")}
+                  >
+                    Όνομα ({sortedCustomers.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="">Επικοινωνία</th>
+                  <th className="">Σχόλια</th>
+                  <th
+                    className="sortable-column-header"
+                    onClick={() => handleSortToggle("is_active")}
+                  >
+                    Εκκρεμεί {sortColumn === "is_active" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="">Actions</th>
+                </tr>
+              </thead>
 
-            {/* Table data */}
-            <tbody>
-              {sortedCustomers.map(customer => (
-                <React.Fragment
-                  key={customer.id}
-                >
-                  <tr
-                    style={{ borderTop: "2px solid  #0073a8", borderRight: "2px solid  #0073a8", borderLeft: "2px solid  #0073a8" }}
-                    className={customer.is_pending == 1 ? "pending-row" : ""}>
+              {/* Table data */}
+              <tbody>
+                {sortedCustomers.map(customer => (
+                  <React.Fragment
+                    key={customer.id}
+                  >
+                    <tr
+                      style={{ borderTop: "2px solid  #0073a8", borderRight: "2px solid  #0073a8", borderLeft: "2px solid  #0073a8" }}
+                      className={customer.is_pending == 1 ? "pending-row" : ""}>
 
-                    {/* Name */}
-                    <td
-                      className="sortable-column-header"
-                      onClick={() => onEditClick(customer)}>
-                      {customer.name + " - "}
+                      {/* Name */}
+                      <td
+                        className="sortable-column-header"
+                        onClick={() => onEditClick(customer)}>
+                        {customer.name + " - "}
 
-                      <b>{customer.rents_count}</b>
-                      {customer.rents_pending_count > 0 ? "/" : ""}
-                      <span
-                        style={{ fontWeight: "bold", color: "red" }}
-                      >
-                        {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}
-                      </span>
-
-                    </td>
-
-                    {/* Phone */}
-                    <td style={{ whiteSpace: "pre-wrap" }}>{customer.phone}</td>
-
-                    {/* Notes */}
-                    <td style={{ whiteSpace: "pre-wrap" }}>{customer.notes}</td>
-
-                    {/* Is pending */}
-                    <td style={{ textAlign: "center", whiteSpace: 'pre-wrap' }}>
-                      <div dangerouslySetInnerHTML={{ __html: getIsPending(customer) }} />
-                    </td>
-
-                    {/* Actions */}
-                    <td>
-                      <div className="action-buttons">
-
-                        {/* Expand Rents */}
-                        <button
-                          title={
-                            expandedCustomerIds.includes(customer.id)
-                              ? "Απόκρυψη ιστορικού"
-                              : "Εμφάνιση ιστορικού"
-                          }
-                          className="button-save"
-                          onClick={() => toggleExpandedCustomer(customer.id)}
+                        <b>{customer.rents_count}</b>
+                        {customer.rents_pending_count > 0 ? "/" : ""}
+                        <span
+                          style={{ fontWeight: "bold", color: "red" }}
                         >
-                          <span className={`dashicons ${expandedCustomerIds.includes(customer.id)
-                            ? "dashicons-arrow-up-alt2"
-                            : "dashicons-arrow-down-alt2"
-                            }`}></span>
-                        </button>
+                          {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}
+                        </span>
 
-                        {/* Edit button */}
-                        <button
-                          title="Επεξεργασία"
-                          className="button-edit"
-                          onClick={() => onEditClick(customer)}
-                          style={{ marginRight: 7 }}
+                      </td>
+
+                      {/* Phone */}
+                      <td style={{ whiteSpace: "pre-wrap" }}>{customer.phone}</td>
+
+                      {/* Notes */}
+                      <td style={{ whiteSpace: "pre-wrap" }}>{customer.notes}</td>
+
+                      {/* Is pending */}
+                      <td style={{ textAlign: "center", whiteSpace: 'pre-wrap' }}>
+                        <div dangerouslySetInnerHTML={{ __html: getIsPending(customer) }} />
+                      </td>
+
+                      {/* Actions */}
+                      <td>
+                        <div className="action-buttons">
+
+                          {/* Expand Rents */}
+                          <button
+                            title={
+                              expandedCustomerIds.includes(customer.id)
+                                ? "Απόκρυψη ιστορικού"
+                                : "Εμφάνιση ιστορικού"
+                            }
+                            className="button-save"
+                            onClick={() => toggleExpandedCustomer(customer.id)}
+                          >
+                            <span className={`dashicons ${expandedCustomerIds.includes(customer.id)
+                              ? "dashicons-arrow-up-alt2"
+                              : "dashicons-arrow-down-alt2"
+                              }`}></span>
+                          </button>
+
+                          {/* Edit button */}
+                          <button
+                            title="Επεξεργασία"
+                            className="button-edit"
+                            onClick={() => onEditClick(customer)}
+                            style={{ marginRight: 7 }}
+                          >
+                            <span className="dashicons dashicons-edit"></span>
+                          </button>
+
+                          {/* Delete */}
+                          <button
+                            title="Διαγραφή"
+                            className="button-delete"
+                            onClick={() => onDeleteClick(customer)}
+                            style={{ marginRight: 7 }}>
+                            <span class="dashicons dashicons-trash"></span>
+                          </button>
+
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Expanded rents row */}
+                    {
+                      expandedCustomerIds.includes(customer.id) && (
+                        <tr
+                          className="expanded-row"
+                          style={{ borderBottom: "2px solid  #0073a8", borderRight: "2px solid  #0073a8", borderLeft: "2px solid  #0073a8" }}
                         >
-                          <span className="dashicons dashicons-edit"></span>
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          title="Διαγραφή"
-                          className="button-delete"
-                          onClick={() => onDeleteClick(customer)}
-                          style={{ marginRight: 7 }}>
-                          <span class="dashicons dashicons-trash"></span>
-                        </button>
-
-                      </div>
-                    </td>
-                  </tr>
-
-                  {/* Expanded rents row */}
-                  {
-                    expandedCustomerIds.includes(customer.id) && (
-                      <tr
-                        className="expanded-row"
-                        style={{ borderBottom: "2px solid  #0073a8", borderRight: "2px solid  #0073a8", borderLeft: "2px solid  #0073a8" }}
-                      >
-                        <td colSpan={5}>
-                          <div className="expanded-container">
-                            <h4
-                              className="sortable-column-header"
-                              style={{ marginBottom: 10 }}
-                              onClick={() => toggleExpandedCustomer(customer.id)}
-                            >
-
-                              {getCustomerIcons(customer)}{" "}
-                              <b> {customer.rents_count}</b>
-                              {customer.rents_pending_count > 0 ? "/" : ""}
-                              <span
-                                style={{ fontWeight: "bold", color: "red" }}
+                          <td colSpan={5}>
+                            <div className="expanded-container">
+                              <h4
+                                className="sortable-column-header"
+                                style={{ marginBottom: 10 }}
+                                onClick={() => toggleExpandedCustomer(customer.id)}
                               >
-                                {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}{" "}
-                              </span>
 
-                              <strong>
-                                {customer.name}
-                              </strong>
+                                {getCustomerIcons(customer)}{" "}
+                                <b> {customer.rents_count}</b>
+                                {customer.rents_pending_count > 0 ? "/" : ""}
+                                <span
+                                  style={{ fontWeight: "bold", color: "red" }}
+                                >
+                                  {customer.rents_pending_count > 0 ? customer.rents_pending_count : ""}{" "}
+                                </span>
 
-                              <span style={{ fontSize: "large" }}> ιστορικό ενοικιάσεων</span>
-                            </h4>
+                                <strong>
+                                  {customer.name}
+                                </strong>
 
-                            <table className="expanded-rents-table">
-                              <thead>
-                                <tr>
-                                  {/* Empty first column just for spacing */}
-                                  <th style={{ width: "5%" }}></th>
-                                  <th style={{ textAlign: "center" }} >Εξοπλισμός</th>
-                                  <th style={{ textAlign: "center" }} >Έναρξη</th>
-                                  <th style={{ textAlign: "center" }} >Λήξη</th>
-                                  <th style={{ textAlign: "center" }} >Επιστροφή</th>
-                                  <th style={{ textAlign: "center" }} >Πληρωμή</th>
-                                  <th style={{ textAlign: "center" }}>Παρατηρήσεις</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {rents
-                                  .filter(r => r.customer_id === customer.id)
-                                  .map((rent, index) => (
-                                    <tr
-                                      key={index}
-                                      // backgroundColor: isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? '#d6ffd6' : "#d6e8ff" }classname={isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? "active-row" : ""}
-                                      style={{ backgroundColor: isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? '#d6ffd6' : "#d6e8ff" }}
-                                    >
-                                      <td>{getRentIcons(rent, customer)} </td> {/* empty spacing cell */}
-                                      <td>{getRentedItemsNames(rent.items)}</td>
-                                      <td style={{ textAlign: "center" }} >{formatDateMidium(rent.start_date)}</td>
-                                      <td style={{ textAlign: "center" }} >{formatDateMidium(rent.end_date)}</td>
-                                      <td style={{ textAlign: "center" }} >{isValidDate(rent.ret_date) ? formatDateMidium(rent.ret_date) : "-"}</td>
-                                      <td style={{ textAlign: "center" }} >{isValidDate(rent.paid_date) ? formatDateMidium(rent.paid_date) : "-"}</td>
-                                      <td style={{ textAlign: "center", whiteSpace: 'pre-wrap', textAlign: "left" }} >{rent.notes}</td>
-                                    </tr>
-                                  ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  }
-                </React.Fragment>
-              ))}
-            </tbody>
-          </table>
+                                <span style={{ fontSize: "large" }}> ιστορικό ενοικιάσεων</span>
+                              </h4>
+
+                              <table className="expanded-rents-table">
+                                <thead>
+                                  <tr>
+                                    {/* Empty first column just for spacing */}
+                                    <th style={{ width: "5%" }}></th>
+                                    <th style={{ textAlign: "center" }} >Εξοπλισμός</th>
+                                    <th style={{ textAlign: "center" }} >Έναρξη</th>
+                                    <th style={{ textAlign: "center" }} >Λήξη</th>
+                                    <th style={{ textAlign: "center" }} >Επιστροφή</th>
+                                    <th style={{ textAlign: "center" }} >Πληρωμή</th>
+                                    <th style={{ textAlign: "center" }}>Παρατηρήσεις</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {rents
+                                    .filter(r => r.customer_id === customer.id)
+                                    .map((rent, index) => (
+                                      <tr
+                                        key={index}
+                                        // backgroundColor: isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? '#d6ffd6' : "#d6e8ff" }classname={isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? "active-row" : ""}
+                                        style={{ backgroundColor: isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? '#d6ffd6' : "#d6e8ff" }}
+                                      >
+                                        <td>{getRentIcons(rent, customer)} </td> {/* empty spacing cell */}
+                                        <td>{getRentedItemsNames(rent.items)}</td>
+                                        <td style={{ textAlign: "center" }} >{formatDateMidium(rent.start_date)}</td>
+                                        <td style={{ textAlign: "center" }} >{formatDateMidium(rent.end_date)}</td>
+                                        <td style={{ textAlign: "center" }} >{isValidDate(rent.ret_date) ? formatDateMidium(rent.ret_date) : "-"}</td>
+                                        <td style={{ textAlign: "center" }} >{isValidDate(rent.paid_date) ? formatDateMidium(rent.paid_date) : "-"}</td>
+                                        <td style={{ textAlign: "center", whiteSpace: 'pre-wrap', textAlign: "left" }} >{rent.notes}</td>
+                                      </tr>
+                                    ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    }
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )
       }
 

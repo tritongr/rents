@@ -8,6 +8,8 @@
 import "./Items.scss"
 import { isValidDate, isDatePast, formatDateShort } from "../../utilities/functionsLib"
 
+import html2pdf from 'html2pdf.js'
+
 import React, { useState, useEffect, useRef } from "react"
 import axios from "axios"
 import { toast } from 'react-toastify'
@@ -272,6 +274,85 @@ function Items({ items, setItems, nullItem, API }) {
   }
 
   /**
+    *  PDF Download
+    */
+
+  // Handlers στο container div του πίνακα και το h3 του τίτλου
+  const tableRef = useRef(null)
+  const titleRef = useRef(null)
+
+  async function handleDownloadPdf() {
+
+    // To conainer div των h3 και title 
+    const element = document.querySelector('.pdf-container')
+
+    // Απόκρυψη τελευταίας στήλης
+    // ==========================
+    // Βρίσκουμε όλους τους headers της τελευταίας στήλης (αν υπάρχουν)
+    const lastColumnHeaders = element.querySelectorAll('thead tr th:last-child');
+
+    // Βρίσκουμε όλα τα cells της τελευταίας στήλης
+    const lastColumnCells = element.querySelectorAll('tbody tr td:last-child');
+
+    // Προσθέτουμε in-line styles για απόκρυψη στην τελευταία στήλη
+    lastColumnHeaders.forEach(header => header.style.display = 'none');
+    lastColumnCells.forEach(cell => cell.style.display = 'none');
+
+    // Προσθέτουμε την κλάση για απόκρυψη
+    // lastColumnHeaders.forEach(header => header.classList.add('hide-on-pdf'));
+    // lastColumnCells.forEach(cell => cell.classList.add('hide-on-pdf'));
+
+    // Εμφάνιση του pdf Header
+    // =======================
+    // Το h3 του pdf title
+    const titleElement = titleRef.current;
+
+    // Αποθηκεύουμε την αρχική τιμή του display (αν υπάρχει)
+    const originalDisplay = titleElement.style.display
+    const originalText = titleElement.textContent; // Αποθηκεύουμε το αρχικό κείμενο (αν υπάρχει)
+
+    // Εμφανίζουμε τον τίτλο προσωρινά
+    titleElement.style.display = 'block';
+
+    // Timestamp
+    // =========
+    const now = new Date()
+    // const timestamp = (now.toISOString().slice(0, 19).replace(/T/, '_').replace(/:/g, '-'))
+    const timestamp = now.toLocaleString('el-GR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+    const fullTitle = `ΕΞΟΠΛΙΣΜΟΣ στις ${timestamp}`;
+    const filename = `Rents_Items_${timestamp}.pdf`
+
+    // Ενημερώνουμε το κείμενο του τίτλου και το εμφανίζουμε προσωρινά
+    titleElement.textContent = fullTitle;
+    titleElement.style.display = 'block';
+
+    // Τα options του html2pdf
+    const opt = {
+      margin: 10,
+      filename, //`Rents_${timestamp.replace(/[\/: ]/g, '-')}.pdf`, // Χρησιμοποιούμε το timestamp στο filename
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    }
+
+    // Δημιουργία του PDF
+    // ==================
+    html2pdf().from(element).set(opt).save().finally(() => {
+
+      // Επαναφέρουμε το αρχικό κείμενο και την εμφάνιση του h3
+      titleElement.textContent = originalText;
+      titleElement.style.display = originalDisplay;
+
+      // Επαναφορά της τελευταίας στήλης
+      // lastColumnHeaders.forEach(header => header.classList.remove('hide-on-pdf'));
+      // lastColumnCells.forEach(cell => cell.classList.remove('hide-on-pdf'));
+      lastColumnHeaders.forEach(header => header.style.display = ''); // ή την προηγούμενη τιμή αν την είχες αποθηκεύσει
+      lastColumnCells.forEach(cell => cell.style.display = '');
+
+    })
+  }
+
+  /**
    *  Rendering
    */
   return (
@@ -302,7 +383,7 @@ function Items({ items, setItems, nullItem, API }) {
           }}
         >
 
-          {/* Add New item Button */}
+          {/* Add New  + PDF buttons */}
           <button
             title="Νέο είδος"
             onClick={onAddClick}
@@ -310,6 +391,14 @@ function Items({ items, setItems, nullItem, API }) {
             style={{ flex: "0 0 auto", margin: "0" }}
           >
             <span class="dashicons dashicons-plus-alt2"></span>
+          </button>
+
+          <button
+            title="Download PDF"
+            onClick={handleDownloadPdf}
+            className="button-delete hide-on-mobile"
+          >
+            <span class="dashicons dashicons-download"></span>
           </button>
 
           {/* Checkboxes  */}
@@ -363,82 +452,85 @@ function Items({ items, setItems, nullItem, API }) {
       {/* Ο Πίνακας */}
       {
         isCollapsiblePanelOpen && (
-          <table className="">
+          <div className="pdf-container">
+            <h3 ref={titleRef} style={{ display: 'none', textAlign: 'center', marginBottom: '10px' }}>ΕΞΟΠΛΙΣΜΟΣ</h3>
+            <table className="" ref={tableRef}>
 
-            {/* Table header */}
-            <thead className="">
-              <tr>
-                {/* Sortable column name */}
-                {/* Όνομασία */}
-                <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("name")}
-                >
-                  Όνομασία ({filteredItems.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-                </th>
-
-                {/* Διαθέσιμο */}
-                <th
-                  className=""
-                >
-                  Διαθέσιμο
-                </th>
-
-                {/* Σχόλια */}
-                <th className="">Σχόλια</th>
-
-                {/* Actions */}
-                <th className="">Actions</th>
-              </tr>
-            </thead>
-
-            {/* Table data */}
-            <tbody>
-              {
-                // Filtered + Sorted items
-                sortedItems.map(item => (
-                  <tr
-                    key={item.id}
-                    className={item.is_rented != 1 ? "active-row" : ""}
+              {/* Table header */}
+              <thead className="">
+                <tr>
+                  {/* Sortable column name */}
+                  {/* Όνομασία */}
+                  <th
+                    className="sortable-column-header"
+                    onClick={() => handleSortToggle("name")}
                   >
-                    {/* Name */}
-                    <td className="sortable-column-header" onClick={() => onEditClick(item)}>{item.name}</td>
+                    Όνομασία ({filteredItems.length}) {sortColumn === "name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  </th>
 
-                    {/* Is Available */}
-                    <td style={{ textAlign: "center", whiteSpace: 'pre-wrap' }} >
-                      <div dangerouslySetInnerHTML={{ __html: getIsAvailable(item) }} />
-                    </td>
+                  {/* Διαθέσιμο */}
+                  <th
+                    className=""
+                  >
+                    Διαθέσιμο
+                  </th>
 
-                    {/* Description */}
-                    <td style={{ whiteSpace: "pre-wrap" }}>{item.description}</td>
+                  {/* Σχόλια */}
+                  <th className="">Σχόλια</th>
 
-                    {/* Action buttons */}
-                    <td>
-                      <div id="action-buttons">
-                        {/* Edit button */}
-                        <button
-                          title="Επεξεργασία γραμμής"
-                          className="button-edit"
-                          onClick={() => onEditClick(item)}
-                          style={{ marginRight: 7 }}
-                        >
-                          <span className="dashicons dashicons-edit"></span>
-                        </button>
+                  {/* Actions */}
+                  <th className="">Actions</th>
+                </tr>
+              </thead>
 
-                        {/* Delete button */}
-                        <button
-                          title="Διαγραφή γραμμής"
-                          className="button-delete"
-                          onClick={() => onDeleteClick(item)}
-                        >
-                          <span class="dashicons dashicons-trash"></span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>))
-              }
-            </tbody>
-          </table>
+              {/* Table data */}
+              <tbody>
+                {
+                  // Filtered + Sorted items
+                  sortedItems.map(item => (
+                    <tr
+                      key={item.id}
+                      className={item.is_rented != 1 ? "active-row" : ""}
+                    >
+                      {/* Name */}
+                      <td className="sortable-column-header" onClick={() => onEditClick(item)}>{item.name}</td>
+
+                      {/* Is Available */}
+                      <td style={{ textAlign: "center", whiteSpace: 'pre-wrap' }} >
+                        <div dangerouslySetInnerHTML={{ __html: getIsAvailable(item) }} />
+                      </td>
+
+                      {/* Description */}
+                      <td style={{ whiteSpace: "pre-wrap" }}>{item.description}</td>
+
+                      {/* Action buttons */}
+                      <td>
+                        <div id="action-buttons">
+                          {/* Edit button */}
+                          <button
+                            title="Επεξεργασία γραμμής"
+                            className="button-edit"
+                            onClick={() => onEditClick(item)}
+                            style={{ marginRight: 7 }}
+                          >
+                            <span className="dashicons dashicons-edit"></span>
+                          </button>
+
+                          {/* Delete button */}
+                          <button
+                            title="Διαγραφή γραμμής"
+                            className="button-delete"
+                            onClick={() => onDeleteClick(item)}
+                          >
+                            <span class="dashicons dashicons-trash"></span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>))
+                }
+              </tbody>
+            </table>
+          </div>
         )
       }
 

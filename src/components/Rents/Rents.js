@@ -7,8 +7,13 @@
 
 import "./Rents.scss"
 
+import html2pdf from 'html2pdf.js'
+
 import { format } from 'date-fns';
+
 import { isValidDate, isDatePast, formatDateShort, formatDateShort3, formatDayOfWeek, formatDateMidium, formatDateEnd, formatDateStart } from "../../utilities/functionsLib"
+import RentPopup from "./RentPopup"
+import HelpPopup from "./HelpPopup"
 
 import React, { useState, useEffect, useRef } from "react"
 import axios from "axios"
@@ -312,20 +317,16 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
 
   // Τα Items name από τον rented_items array 
-  function getRentedItemsNames(rented_items) {
+  function getRentedItemsNames(rented_items, truncated) {
 
     const itemNames = rented_items.map((itemId) => {
       const item = items.find((i) => i.id == itemId);
       return item ? item.name : 'Άγνωστο είδος';
-    }).filter((i, index) => index < 3);
+    }).filter((i, index) => truncated ? index < 3 : true);
 
-    const suffix = rented_items.length > 3 ? "\n+" + (rented_items.length - 3) + " ακόμη..." : ""
+    const suffix = (rented_items.length > 3 && truncated) ? "\n+" + (rented_items.length - 3) + " ακόμη..." : ""
 
     return itemNames.join("\n") + suffix
-
-    // return itemNames.map((name, index) => (
-    //   <div key={index}>{name}</div>
-    // ));
   }
 
   // Return date
@@ -357,7 +358,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   /**
    * Filters
    */
-  // Φιλτράρισμα βάσει searchText και is_pending
+  // Φιλτράρισμα βάσει searchText και ceckboxes
   const filteredRents = rents
     .filter(r => !showInProgress || (isDatePast(r.start_date) && (!isDatePast(r.end_date))))  // Σε εξέλιξη
     .filter(r => !showFutured || !isDatePast(r.start_date))  // Μελλοντικές
@@ -366,8 +367,27 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
     .filter(r => !showUnreturned || !isValidDate(r.ret_date)) // Μη επιστραμμένα
     .filter(r => !showUnpaid || !isValidDate(r.paid_date)) // Ανεξόφλητα
     .filter(r => !showCompleted || (isValidDate(r.ret_date) && isValidDate(r.paid_date))) // Oλοκληρωμένες
-    .filter(r => !showNotCompleted || (!isValidDate(r.ret_date) && !isValidDate(r.paid_date))) // Μη ολοκληρωμένες
-    .filter(r => r.customer_name.toLowerCase().includes(searchText.toLowerCase()) || r.notes.toLowerCase().includes(searchText.toLowerCase()))
+    .filter(r => !showNotCompleted || (!isValidDate(r.ret_date) || !isValidDate(r.paid_date))) // Μη ολοκληρωμένες
+    .filter(r => {
+      const lowerSearch = searchText.toLowerCase();
+
+      // Φιλτράρισμα βάσει ονόματος πελάτη ή σημειώσεων
+      const matchesCustomerOrNotes = r.customer_name.toLowerCase().includes(lowerSearch) ||
+        r.notes.toLowerCase().includes(lowerSearch);
+
+      // Αν δεν υπάρχει search text, μην ελέγχεις παρακάτω
+      if (!searchText.trim()) return true;
+
+      // Φιλτράρισμα βάσει ονόματος ενοικιαζόμενων αντικειμένων
+      const matchesItemNames = r.items.some(itemId => {
+        const item = items.find(i => i.id === itemId);
+        return item?.name?.toLowerCase().includes(lowerSearch);
+      });
+
+      return matchesCustomerOrNotes || matchesItemNames;
+    })
+
+  // .filter(r => r.customer_name.toLowerCase().includes(searchText.toLowerCase()) || r.notes.toLowerCase().includes(searchText.toLowerCase()))
 
   /**
    * Sorting
@@ -428,11 +448,11 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
     const customerPhone = (rent.customer_phone + "").trim().length > 0 ? "\n" + rent.customer_phone : ""
     const customerNotes = (rent.customer_notes + "").trim().length > 0 ? "\n" + rent.customer_notes : ""
     const rentNotes = (rent.notes + "").trim().length > 0 ? "\n" + rent.notes : ""
-    const lastModified = isValidDate(rent.last_modified) ? "\n(Τελ. ενημ.: " + rent.last_modified + ")" : ""
+    const lastModified = isValidDate(rent.last_modified) ? "\n<span style='font-size: small'>(Τελ. ενημ.: " + rent.last_modified + ")</span>" : ""
 
-    const text = `***ΣΤΟΙΧΕΙΑ ΕΝΟΙΚΙΑΣΗΣ***\n\nΠΕΛΑΤΗΣ:\n${rent.customer_name}${customerPhone}${customerNotes}\n\nΕΞΟΠΛΙΣΜΟΣ (${itemNames.length}):\n${itemNames.join(", ")}\n\nΣΧΟΛΙΑ:${rentNotes} \n\nΗΜΕΡΟΜΗΝΙΕΣ:\nΈναρξη: ${formatDateMidium(rent.start_date) + ", " + formatDayOfWeek(rent.start_date)}\nΛήξη: ${formatDateMidium(rent.end_date) + ", " + formatDayOfWeek(rent.end_date)}${lastModified}`
+    const text = `***ΣΤΟΙΧΕΙΑ ΕΝΟΙΚΙΑΣΗΣ***\n\n<b>ΠΕΛΑΤΗΣ</b>:\n${rent.customer_name}${customerPhone}${customerNotes}\n\n<b>ΕΞΟΠΛΙΣΜΟΣ</b> (${itemNames.length}):\n${itemNames.join(", ")}\n\n<b>ΣΧΟΛΙΑ</b>:${rentNotes} \n\n<b>ΗΜΕΡΟΜΗΝΙΕΣ</b>:\nΈναρξη: ${formatDateMidium(rent.start_date) + ", " + formatDayOfWeek(rent.start_date)}\nΛήξη: ${formatDateMidium(rent.end_date) + ", " + formatDayOfWeek(rent.end_date)}${lastModified}`
 
-    console.log(text)
+    // console.log(text)
 
     return text
 
@@ -445,7 +465,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       return
     }
 
-    navigator.clipboard.writeText(textToCopy)
+    navigator.clipboard.writeText(textToCopy.replace(/(<([^>]+)>)/gi, ""))
       .then(() => {
 
         toast.success('Η ενοικίαση αντιγράφηκε στο clipboard! \nΜπορείτε να την επικολλήσετε')
@@ -493,7 +513,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   /** 
    * Create calendar event
   */
-  const createGoogleCalendarEvent = (rent) => {
+  const createGoogleCalendarEvent = (rent, showEosOnly = false) => {
 
     // Αν έχει λήξη η ενοικίαση
     if (isDatePast(rent.end_date)) {
@@ -501,15 +521,12 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       return
     }
 
-
     // Start event parameters
     // ----------------------
     const startEventTitle = rent.customer_name + " ΕΝΑΡΞΗ " + formatDateShort(rent.start_date) + " - " + formatDateShort(rent.end_date)
     // const startEventStartDate = formatDateStart(rent.start_date)
     // const startEventEndDate = formatDateEnd(rent.start_date)
     const startEventStartDate = format(rent.start_date, "yyyyMMdd") // χωρίς ώρα
-
-
 
     // Μορφοποίηση σε ISO 8601
     // const startEventStartDateISO = startEventStartDate.toISOString().replace(/[-:]/g, '').replace(/\.000Z$/, 'Z');
@@ -532,7 +549,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
     const baseUrl = "https://calendar.google.com/calendar/u/0/r/eventedit";
 
     // Start event
-    if (!isDatePast(rent.start_date)) {// Αν δεν έχει ξεκινήσει η ενοικίαση, δημιουργία event
+    if (!isDatePast(rent.start_date) && !showEosOnly) {// Αν δεν έχει ξεκινήσει η ενοικίαση, δημιουργία event
       const url = `${baseUrl}?text=${encodeURIComponent(startEventTitle)}&details=${encodeURIComponent(rentToCopy(rent))}&dates=${startEventStartDate}/${startEventStartDate}`;
       window.open(url, "_blank");
     }
@@ -542,10 +559,9 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       const url = `${baseUrl}?text=${encodeURIComponent(endEventTitle)}&details=${encodeURIComponent(rentToCopy(rent))}&dates=${endEventStartDate}/${endEventStartDate}`;
       window.open(url, "_blank");
     }
-
   };
 
-  // Calendar button
+  // Calendar button text
   function calendarButtonText(rent) {
 
     // Αν έχει λήξη η ενοικίαση
@@ -559,19 +575,117 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
     if (!isDatePast(rent.start_date) && !isDatePast(rent.end_date)) {
 
       return "Events Από & Έως 📅"
-
     }
 
     // Σε εξέλιξη ενοικίαση
     if (!isDatePast(rent.end_date)) {
 
       return "Event λήξης 📅"
+    }
+  }
 
+  /**
+   *  PDF Download
+   */
+  // Handlers στο container div του πίνακα και το h3 του τίτλου
+  const tableRef = useRef(null)
+  const titleRef = useRef(null)
+
+  async function handleDownloadPdf() {
+
+    // To conainer div των h3 και title 
+    const element = document.querySelector('.pdf-container')
+
+    // Απόκρυψη τελευταίας στήλης
+    // ==========================
+    // Βρίσκουμε όλους τους headers της τελευταίας στήλης (αν υπάρχουν)
+    const lastColumnHeaders = element.querySelectorAll('thead tr th:last-child');
+
+    // Βρίσκουμε όλα τα cells της τελευταίας στήλης
+    const lastColumnCells = element.querySelectorAll('tbody tr td:last-child');
+
+    // Προσθέτουμε in-line styles για απόκρυψη στην τελευταία στήλη
+    lastColumnHeaders.forEach(header => header.style.display = 'none');
+    lastColumnCells.forEach(cell => cell.style.display = 'none');
+
+    // Προσθέτουμε την κλάση για απόκρυψη
+    // lastColumnHeaders.forEach(header => header.classList.add('hide-on-pdf'));
+    // lastColumnCells.forEach(cell => cell.classList.add('hide-on-pdf'));
+
+    // Εμφανίζουμε την πλήρη έκδοση των items και notes
+    // ================================================
+    // Βρίσκουμε όλα τα στοιχεία με κλάση 'notes-cell'
+    const noteCells = element.querySelectorAll('.notes-cell')
+
+    // Αποθηκεύουμε την αρχική κατάσταση των spans
+    const originalStates = Array.from(noteCells).map(cell => ({
+      truncatedDisplay: cell.querySelector('.truncated').style.display,
+      fullDisplay: cell.querySelector('.full').style.display,
+    }))
+
+    // Εναλλάσσουμε τις κλάσεις για εκτύπωση
+    noteCells.forEach(cell => {
+      const truncatedSpan = cell.querySelector('.truncated')
+      const fullSpan = cell.querySelector('.full')
+      truncatedSpan.style.display = 'none'
+      fullSpan.style.display = 'inline'
+    });
+
+    // Εμφάνιση του pdf Header
+    // =======================
+    // Το h3 του pdf title
+    const titleElement = titleRef.current;
+
+    // Αποθηκεύουμε την αρχική τιμή του display (αν υπάρχει)
+    const originalDisplay = titleElement.style.display
+    const originalText = titleElement.textContent; // Αποθηκεύουμε το αρχικό κείμενο (αν υπάρχει)
+
+    // Εμφανίζουμε τον τίτλο προσωρινά
+    titleElement.style.display = 'block';
+
+    // Timestamp
+    // =========
+    const now = new Date()
+    // const timestamp = (now.toISOString().slice(0, 19).replace(/T/, '_').replace(/:/g, '-'))
+    const timestamp = now.toLocaleString('el-GR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+    const fullTitle = `ΕΝΟΙΚΙΑΣΕΙΣ στις ${timestamp}`;
+    const filename = `Rents_${timestamp}.pdf`
+
+    // Ενημερώνουμε το κείμενο του τίτλου και το εμφανίζουμε προσωρινά
+    titleElement.textContent = fullTitle;
+    titleElement.style.display = 'block';
+
+    // Τα options του html2pdf
+    const opt = {
+      margin: 10,
+      filename, //`Rents_${timestamp.replace(/[\/: ]/g, '-')}.pdf`, // Χρησιμοποιούμε το timestamp στο filename
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
     }
 
+    // Δημιουργία του PDF
+    // ==================
+    html2pdf().from(element).set(opt).save().finally(() => {
 
+      // Επαναφέρουμε το αρχικό κείμενο και την εμφάνιση
+      titleElement.textContent = originalText;
+      titleElement.style.display = originalDisplay;
 
+      // Επαναφορά της τελευταίας στήλης
+      // lastColumnHeaders.forEach(header => header.classList.remove('hide-on-pdf'));
+      // lastColumnCells.forEach(cell => cell.classList.remove('hide-on-pdf'));
+      lastColumnHeaders.forEach(header => header.style.display = ''); // ή την προηγούμενη τιμή αν την είχες αποθηκεύσει
+      lastColumnCells.forEach(cell => cell.style.display = '');
 
+      // Επαναφέρουμε την αρχική κατάσταση των notes και items μετά το download
+      noteCells.forEach((cell, index) => {
+        const truncatedSpan = cell.querySelector('.truncated')
+        const fullSpan = cell.querySelector('.full')
+        truncatedSpan.style.display = originalStates[index].truncatedDisplay
+        fullSpan.style.display = originalStates[index].fullDisplay
+      })
+    })
   }
 
   /**
@@ -593,22 +707,12 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       {/* Wrapper div για add new button, checkboxes, search */}
       {isCollapsiblePanelOpen && (
         <div
-          style={{
-            id: "rent-top-section",
-            padding: "6px 0 6px 0",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-            gap: "10px", // προαιρετικό για απόσταση ανάμεσα
-            fontSize: "small"
-          }}
+          id="rent-top-section"
         >
 
-          {/* New record button div */}
+          {/* New record + PDF buttons div */}
           <div
             id="rent-new-button"
-            style={{ alignSelf: "center", flex: "0 0 auto", verticalAlign: "middle" }}
           >
             <button
               title="Νέα ενοικίαση"
@@ -617,12 +721,20 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
             >
               <span style={{ verticalAlign: "middle" }} class="dashicons dashicons-plus-alt2"></span>
             </button>
+
+            <button
+              title="Download PDF"
+              onClick={handleDownloadPdf}
+              className="button-delete hide-on-mobile"
+            >
+              <span class="dashicons dashicons-download"></span>
+            </button>
           </div>
 
           {/* Checkboxes + Help Button */}
           <div
             id="rent-checkboxes"
-            style={{ flex: "1 1 auto", textAlign: "center" }}>
+          >
 
             {/* Help Button */}
             <button
@@ -644,17 +756,23 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
             </button>
 
             {/* Μελλοντικές */}
-            <label title="Ενοικιάσεις με μελλοντική ημερομηνία έναρξης" style={{ marginRight: '1em', fontWeight: "bold" }}>
+            <label
+              title="Ενοικιάσεις με μελλοντική ημερομηνία έναρξης"
+              style={{ marginRight: '1em', fontWeight: "bold" }}
+            >
               <input
                 type="checkbox"
                 checked={showFutured}
-                onChange={() => { setShowFutured(!showFutured); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowNotCompleted(false); setShowToCollect(false); setShowToGetPaid(false) }}
+                onChange={() => { setShowFutured(!showFutured); setShowUnpaid(false); setShowUnreturned(false); setShowCompleted(false); setShowNotCompleted(false); setShowToCollect(false); setShowToGetPaid(false); setShowInProgress(false); }}
               />
               {' '}Μελλοντικές
             </label>
 
             {/* Σε εξέλιξη */}
-            <label title="Ενοικιάσεις που ξεκίνησαν αλλά δεν έληξαν ακόμη" style={{ marginRight: '1em', fontWeight: "bold" }}>
+            <label
+              title="Ενοικιάσεις που ξεκίνησαν αλλά δεν έληξαν ακόμη"
+              style={{ marginRight: '1em', fontWeight: "bold" }}
+            >
               <input
                 type="checkbox"
                 checked={showInProgress}
@@ -664,7 +782,10 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
             </label>
 
             {/* Για παραλαβή */}
-            <label title="Δεν έχουν επιστραφεί ενώ έχουν λήξει" style={{ marginRight: '1em', fontWeight: "bold" }}>
+            <label
+              title="Δεν έχουν επιστραφεί ενώ έχουν λήξει"
+              style={{ marginRight: '1em', fontWeight: "bold" }}
+            >
               <input
                 type="checkbox"
                 checked={showToCollect}
@@ -674,7 +795,10 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
             </label>
 
             {/* Για είσπραξη */}
-            <label title="Δεν έχουν εισπραχθεί ενώ έχουν λήξει" style={{ marginRight: '1em', fontWeight: "bold" }}>
+            <label
+              title="Δεν έχουν εισπραχθεί ενώ έχουν λήξει"
+              style={{ marginRight: '1em', fontWeight: "bold" }}
+            >
               <input
                 type="checkbox"
                 checked={showToGetPaid}
@@ -685,7 +809,10 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
             <div className="hide-on-mobile">
               {/* Δεν επεστράφησαν */}
-              <label title="Δεν έχει καταχωρηθεί επιστροφή" style={{ marginRight: '1em' }}>
+              <label
+                title="Δεν έχει καταχωρηθεί επιστροφή"
+                style={{ marginRight: '1em' }}
+              >
                 <input
                   type="checkbox"
                   checked={showUnreturned}
@@ -695,7 +822,10 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
               </label>
 
               {/* Ανεξόφλητες */}
-              <label title="Δεν έχει καταχωρηθεί πληρωμή" style={{ marginRight: '1em' }}>
+              <label
+                title="Δεν έχει καταχωρηθεί πληρωμή"
+                style={{ marginRight: '1em' }}
+              >
                 <input
                   type="checkbox"
                   checked={showUnpaid}
@@ -705,7 +835,10 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
               </label>
 
               {/* Ολοκληρωμένες */}
-              <label title="Πλήρως εξοφλημένες και επιστραμμένες" style={{ marginRight: '1em' }}>
+              <label
+                title="Πλήρως εξοφλημένες και επιστραμμένες"
+                style={{ marginRight: '1em' }}
+              >
                 <input
                   type="checkbox"
                   checked={showCompleted}
@@ -715,7 +848,10 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
               </label>
 
               {/* Μη Ολοκληρωμένες */}
-              <label title="Λείπει είτε επιστροφή είτε πληρωμή" style={{ marginRight: '1em' }}>
+              <label
+                title="Λείπει είτε επιστροφή είτε πληρωμή"
+                style={{ marginRight: '1em' }}
+              >
                 <input
                   type="checkbox"
                   checked={showNotCompleted}
@@ -727,7 +863,9 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
           </div>
 
-          <div id="rent-search-bar" style={{ flex: "0 0 auto" }}>
+          <div
+            id="rent-search-bar"
+          >
             <input
               type="text"
               placeholder="🔍 Αναζήτηση ενοικίασης ..."
@@ -754,179 +892,185 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       {/* Ο Πίνακας */}
       {
         isCollapsiblePanelOpen && (
-          <table className="">
+          <div className="pdf-container">
+            <h3 ref={titleRef} style={{ display: 'none', textAlign: 'center', marginBottom: '10px' }}>ΕΝΟΙΚΙΑΣΕΙΣ</h3>
+            <table id="rents-table" ref={tableRef}>
 
-            {/* Table header */}
-            <thead className="">
-              <tr>
-                {/* Sortable column name */}
-                <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("customer_name")}
-                >
-                  Πελάτης ({filteredRents.length}) {sortColumn === "customer_name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-                </th>
-                <th className="">Είδη</th>
+              {/* Table header */}
+              <thead className="">
+                <tr>
+                  {/* Sortable column name */}
+                  <th
+                    className="sortable-column-header"
+                    onClick={() => handleSortToggle("customer_name")}
+                  >
+                    Πελάτης ({filteredRents.length}) {sortColumn === "customer_name" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="">Είδη</th>
 
-                {/* Sortable column έναρξη */}
-                <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("start_date")}
-                >
-                  Έναρξη {sortColumn === "start_date" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-                </th>
+                  {/* Sortable column έναρξη */}
+                  <th
+                    className="sortable-column-header"
+                    onClick={() => handleSortToggle("start_date")}
+                  >
+                    Έναρξη {sortColumn === "start_date" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  </th>
 
-                {/* Sortable column λήξη */}
-                <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("end_date")}
-                >
-                  Λήξη {sortColumn === "end_date" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-                </th>
+                  {/* Sortable column λήξη */}
+                  <th
+                    className="sortable-column-header"
+                    onClick={() => handleSortToggle("end_date")}
+                  >
+                    Λήξη {sortColumn === "end_date" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  </th>
 
-                <th
-                  className="sortable-column-header"
-                  onClick={() => handleSortToggle("is_active")}
-                >
-                  Επεστράφη {sortColumn === "is_returned" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
-                </th>
-                <th className="">Εξοφλήθη</th>
-                <th className="">Παρατηρήσεις</th>
-                <th className="">Actions</th>
+                  <th
+                    className="sortable-column-header"
+                    onClick={() => handleSortToggle("is_active")}
+                  >
+                    Επεστράφη {sortColumn === "is_returned" ? (sortDirection === "asc" ? "▲" : "▼") : ""}
+                  </th>
+                  <th className="">Εξοφλήθη</th>
+                  <th className="">Παρατηρήσεις</th>
+                  <th className="">Actions</th>
 
-              </tr>
-            </thead>
+                </tr>
+              </thead>
 
-            {/* Table data */}
-            <tbody>
-              {
-                // Filtered + Sorted rents //sortedRents.
-                sortedRents.map(rent => {
-                  // const rentCustomer = getRentCustomer(rent) // customer object (of current rent) 
-                  // const rentItems = getRentedItemsNames(rent.items) // items array of objects (of current rent)
-                  return (
+              {/* Table data */}
+              <tbody>
+                {
+                  // Filtered + Sorted rents //sortedRents.
+                  sortedRents.map(rent => {
+                    // const rentCustomer = getRentCustomer(rent) // customer object (of current rent) 
+                    // const rentItems = getRentedItemsNames(rent.items) // items array of objects (of current rent)
+                    return (
 
-                    // Data row
-                    <tr
-                      key={rent.id}
-                      className={isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? "active-row" : ""}
-                    >
-
-                      {/* Data Cells */}
-                      {/* ---------- */}
-
-                      {/* Renter's customer name */}
-                      <td
-                        className="sortable-column-header"
-                        onClick={() => onEditClick(rent)}
-                        style={{ whiteSpace: "pre-wrap" }}
+                      // Data row
+                      <tr
+                        key={rent.id}
+                        className={isValidDate(rent.paid_date) && isValidDate(rent.ret_date) ? "active-row" : ""}
                       >
 
-                        {rent.customer_name + "\n" + rent.customer_phone}
+                        {/* Data Cells */}
+                        {/* ---------- */}
 
-                      </td>
+                        {/* Renter's customer name */}
+                        <td
+                          className="sortable-column-header"
+                          onClick={() => onEditClick(rent)}
+                          style={{ whiteSpace: "pre-wrap" }}
+                        >
 
-                      {/* Items rented */}
-                      <td
-                        onMouseEnter={() => {
-                          setIsHovered(rent.id)
-                          // copyToClipboard(rentToCopy(rent))
-                        }}
-                        onMouseLeave={() => setIsHovered(null)}
-                        style={{
-                          whiteSpace: "pre-wrap",
-                          cursor: "pointer", // για να φαίνεται ότι είναι clickable
-                          backgroundColor: isHovered === rent.id ? "#c0d3e8" : "#eef6ff"
-                        }}
-                        onClick={() => {
-                          copyToClipboard(rentToCopy(rent))
-                          setRentPopup(rent)
-                        }}
-                      >
-                        {getRentedItemsNames(rent.items)}
+                          {rent.customer_name + "\n" + rent.customer_phone}
 
-                      </td>
+                        </td>
 
-                      {/* Start date */}
-                      <td
-                        className="td-center"
-                        style={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {isValidDate(rent.start_date) ?
-                          formatDateShort3(rent.start_date) + (!isDatePast(rent.start_date) ? " 📅" : "") :
-                          ""}
-                      </td>
+                        {/* Items rented */}
+                        <td
+                          className={`notes-cell ${isHovered === rent.id ? 'hovered' : ''}`}
+                          onMouseEnter={() => {
+                            setIsHovered(rent.id)
+                            // copyToClipboard(rentToCopy(rent))
+                          }}
+                          onMouseLeave={() => setIsHovered(null)}
+                          style={{
+                            whiteSpace: "pre-wrap",
+                            cursor: "pointer", // για να φαίνεται ότι είναι clickable
+                            backgroundColor: isHovered === rent.id ? "#c0d3e8" : "#eef6ff"
+                          }}
+                          onClick={() => {
+                            copyToClipboard(rentToCopy(rent))
+                            setRentPopup(rent)
+                          }}
+                        >
+                          <span className="notes-content truncated">
+                            {getRentedItemsNames(rent.items, true)}
+                          </span>
+                          <span className="notes-content full">
+                            {getRentedItemsNames(rent.items, false)}
+                          </span>
 
-                      {/* End date */}
-                      <td
-                        className="td-center"
-                        style={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {isValidDate(rent.end_date)
-                          ? formatDateShort3(rent.end_date) + (!isDatePast(rent.end_date) ? " 📅" : "")
-                          : ""}
-                      </td>
-                      {/* Returned date */}
-                      <td className="td-center ">
-                        {getReturnDate(rent)}
-                      </td>
+                        </td>
 
-                      {/* Paid date */}
-                      <td className="td-center" >
-                        {getPaidDate(rent)}
-                      </td>
+                        {/* Start date */}
+                        <td
+                          className="td-center"
+                          style={{ whiteSpace: "pre-wrap" }}
+                        >
+                          {isValidDate(rent.start_date) ?
+                            formatDateShort3(rent.start_date) + (!isDatePast(rent.start_date) ? " 📅" : "") :
+                            ""}
+                        </td>
 
-                      {/* Notes */}
-                      <td
-                        onMouseEnter={() => {
-                          setIsHovered(rent.id)
-                          // copyToClipboard(rentToCopy(rent))
-                        }}
+                        {/* End date */}
+                        <td
+                          className="td-center"
+                          style={{ whiteSpace: "pre-wrap" }}
+                        >
+                          {isValidDate(rent.end_date)
+                            ? formatDateShort3(rent.end_date) + (!isDatePast(rent.end_date) ? " 📅" : "")
+                            : ""}
+                        </td>
+                        {/* Returned date */}
+                        <td className="td-center ">
+                          {getReturnDate(rent)}
+                        </td>
 
-                        onMouseLeave={() => setIsHovered(null)}
+                        {/* Paid date */}
+                        <td className="td-center" >
+                          {getPaidDate(rent)}
+                        </td>
 
-                        style={{
-                          whiteSpace: "pre-wrap",
-                          cursor: "pointer", // για να φαίνεται ότι είναι clickable
-                          backgroundColor: isHovered === rent.id ? "#c0d3e8" : "#eef6ff"
-                        }}
+                        {/* Notes */}
+                        <td
+                          style={{ whiteSpace: "pre-wrap" }}
+                          className={`notes-cell ${isHovered === rent.id ? 'hovered' : ''}`}
+                          onMouseEnter={() => setIsHovered(rent.id)}
+                          onMouseLeave={() => setIsHovered(null)}
+                          onClick={() => {
+                            copyToClipboard(rentToCopy(rent));
+                            setRentPopup(rent);
+                          }}
+                        >
+                          <span className="notes-content truncated">
+                            {rent.notes.length > 100 ? rent.notes.slice(0, 100) + '...' : rent.notes}
+                          </span>
+                          <span className="notes-content full">
+                            {rent.notes}
+                          </span>
+                        </td>
 
-                        onClick={() => {
-                          copyToClipboard(rentToCopy(rent))
-                          setRentPopup(rent)
-                        }}
-                      >
-                        {rent.notes.length > 50 ? rent.notes.slice(0, 50) + "..." : rent.notes}
-                      </td>
-
-                      {/* Action buttons */}
-                      <td>
-                        <div id="action-buttons">
-                          {/* Edit button */}
-                          <button
+                        {/* Action buttons */}
+                        <td>
+                          <div id="action-buttons" style={{ textAlign: "center" }}>
+                            {/* Edit button */}
+                            {/* <button
                             title="Επεξεργασία γραμμής"
                             className="button-edit"
                             onClick={() => onEditClick(rent)}
                             style={{ marginRight: 7 }}
                           >
                             <span className="dashicons dashicons-edit"></span>
-                          </button>
+                          </button> */}
 
-                          {/* Delete button */}
-                          <button
-                            title="Διαγραφή γραμμής"
-                            className="button-delete"
-                            onClick={() => onDeleteClick(rent)}
-                          >
-                            <span class="dashicons dashicons-trash"></span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>)
-                })
-              }
-            </tbody>
-          </table>
+                            {/* Delete button */}
+                            <button
+                              title="Διαγραφή γραμμής"
+                              className="button-delete"
+                              onClick={() => onDeleteClick(rent)}
+                              style={{ margin: "0" }}
+                            >
+                              <span class="dashicons dashicons-trash"></span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>)
+                  })
+                }
+              </tbody>
+            </table>
+          </div>
         )
       }
 
@@ -934,7 +1078,6 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
         * Modal form για Edit & Add record 
         * Εμφανίζεται μόνο όταν isModalOpen = true 
       */}
-
       {
         isModalOpen && (<RentModal
           isModalOpen={isModalOpen}
@@ -963,197 +1106,19 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       />
 
       {/* Help popup */}
-      {
-        showHelpPopup && (
+      {showHelpPopup && (<HelpPopup />)}
 
-          // Overlay div
-          <div style={{
-            position: "fixed",
-            top: 0, left: 0,
-            width: "100vw",
-            height: "100vh",
-            backgroundColor: "rgba(0,0,0,0.2)",
-            zIndex: 1000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            // backdropFilter: "blur(4px)" //blur background
-          }}
-            onClick={() => setShowHelpPopup(false)} // κλείνει αν κλικάρεις έξω
-          >
-            {/* Popup div */}
-            <div
-              onClick={(e) => e.stopPropagation()} // για να μην κλείνει αν κλικάρεις μέσα
-              className="fade-in"
-              style={{
-                background: "#fff",
-                borderRadius: "10px",
-                padding: "20px",
-                width: "90%",
-                maxWidth: "400px",
-                boxShadow: "0 0 15px rgba(0,0,0,0.3)",
-              }}
-            >
-              <h3 style={{ marginTop: 0 }}>Επεξήγηση φίλτρων</h3>
-              <ul style={{ paddingLeft: "1.2em", fontSize: "14px", lineHeight: "1.5" }}>
-                <li><strong>Μελλοντικές:</strong> Ενοικιάσεις που ξεκινούν μετά από σήμερα και πρέπει να  προετοιμάσουμε τον εξοπλισμό.</li>
-                <li><strong>Σε εξέλιξη:</strong> Ενοικιάσεις που ξεκίνησαν αλλά δεν έχουν λήξη ακόμη.</li>
-                <li><strong>Για παραλαβή:</strong> Ενοικιάσεις που δεν έχουν επιστραφεί ενώ έχει περάσει η ημ. λήξης και πρέπει να ανακτήσουμε τον εξοπλισμό.</li>
-                <li><strong>Για είσπραξη:</strong> Ενοικιάσεις για τις οποίες δεν πληρωθήκαμε ενώ έχει περάσει η ημ. λήξης.</li>
-                <li><strong>Δεν επεστράφησαν:</strong> Δεν έχει οριστεί ημερομηνία επιστροφής.</li>
-                <li><strong>Ανεξόφλητες:</strong> Δεν έχει καταχωρηθεί ημερομηνία πληρωμής.</li>
-                <li><strong>Ολοκληρωμένες:</strong> Έχουν πληρωθεί και επιστραφεί.</li>
-                <li><strong>Μη Ολοκληρωμένες:</strong> Λείπει είτε η πληρωμή είτε η επιστροφή.</li>
-              </ul>
-              <div style={{ textAlign: "right", marginTop: "15px" }}>
-                <button onClick={() => setShowHelpPopup(false)} className="button-save">Κλείσιμο</button>
-              </div>
-            </div>
-          </div>
-        )
-      }
-      {
-        false && (
-          <div
-            style={{
-              position: "absolute",
-              top: "120px",
-              right: "40px",
-              width: "320px",
-              background: "#fff",
-              border: "1px solid #ccc",
-              borderRadius: "10px",
-              padding: "15px",
-              boxShadow: "2px 2px 10px rgba(0,0,0,0.3)",
-              zIndex: 9999
-            }}
-            onClick={() => setShowHelpPopup(false)} // κλείνει αν κλικάρεις έξω
-          >
-            <strong>Επεξήγηση φίλτρων:</strong>
-            <ul style={{ paddingLeft: "1.2em", marginTop: "10px", fontSize: "13px" }}>
-              <li><strong>Μελλοντικές:</strong> Ενοικιάσεις που ξεκινούν μετά από σήμερα.</li>
-              <li><strong>Για παραλαβή:</strong> Ενοικιάσεις που δεν έχουν επιστραφεί ενώ έχει περάσει η ημ. λήξης.</li>
-              <li><strong>Δεν επεστράφησαν:</strong> Δεν έχει οριστεί ημερομηνία επιστροφής.</li>
-              <li><strong>Ανεξόφλητες:</strong> Δεν έχει καταχωρηθεί ημερομηνία πληρωμής.</li>
-              <li><strong>Ολοκληρωμένες:</strong> Έχουν πληρωθεί και επιστραφεί.</li>
-              <li><strong>Μη Ολοκληρωμένες:</strong> Λείπει είτε η πληρωμή είτε η επιστροφή.</li>
-            </ul>
-            <div style={{ textAlign: "right", marginTop: "10px" }}>
-              <button
-                onClick={() => setShowHelpPopup(false)}
-                className="button-save">
-                Κλείσιμο
-              </button>
-            </div>
-          </div>
-        )
-      }
-
-      {/* Rent popup */}
-      {
-        rentPopup && (
-          <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              backgroundColor: "#fffde7",
-              padding: "20px",
-              border: "1px solid #ccc",
-              borderRadius: "8px",
-              boxShadow: "0px 4px 12px rgba(0,0,0,0.3)",
-              zIndex: 1000,
-              maxWidth: "70%",
-              minWidth: "300px",
-              maxHeight: "80vh", // 👈 περιορισμός ύψους
-              overflowY: "auto",  // 👈 scrollbar όταν χρειάζεται
-              whiteSpace: "pre-wrap",
-              position: "fixed",
-            }}
-          >
-            {/* Close button */}
-            <button
-              onClick={() => setRentPopup(null)}
-              style={{
-                position: "absolute",
-                top: "8px",
-                right: "10px",
-                background: "none",
-                border: "none",
-                fontSize: "1.2em",
-                cursor: "pointer"
-              }}
-            >
-              ✖
-            </button>
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <h3 style={{ textAlign: "center" }} >{rentPopup.customer_name}</h3>
-            </div>
-
-            <div style={{ marginTop: "10px" }}>{rentToCopy(rentPopup)}</div>
-
-            {/* Βuttons */}
-            <div style={{ display: "flex", flexDirection: "column", rowGap: "4px", alignItems: "center", justifyContent: "center", marginTop: "20px" }}>
-
-              {/* Event button */}
-
-              <button
-                title="Δημιουργία calendar event(s)"
-                className="button-edit"
-                onClick={() => {
-                  createGoogleCalendarEvent(rentPopup)
-                  setRentPopup(null)
-                }}
-              >
-                {calendarButtonText(rentPopup)}
-              </button>
-
-              <div>
-
-                {/* Keep button */}
-                <button
-                  title="Άνοιγμα του Keep"
-                  className="button-edit"
-                  onClick={() => {
-                    handleSendToKeep(rentPopup)
-                    setRentPopup(null)
-                  }}
-                >
-                  Keep&nbsp;📝&nbsp;
-                </button>
-
-                {/* eMail button */}
-                <button
-                  // style={{ marginRight: "0" }}
-                  title="Προετοιμασία αποστολής email στο procompusound@gmail.com"
-                  className="button-edit"
-                  onClick={() => {
-                    const to = "malatantis@gmail.com,procompusound@gmail.com";
-                    const subject = encodeURIComponent(`Ενοικίαση: ${rentPopup.customer_name}`);
-                    const body = encodeURIComponent(`${rentPopup.customer_name}\n\n${rentToCopy(rentPopup)}`);
-                    const mailtoLink = `mailto:${to}?subject=${subject}&body=${body}&bcc=mmalatantis@gmail.com`;
-                    window.location.href = mailtoLink;
-                  }}
-                >
-                  Email&nbsp;📧&nbsp;
-                </button>
-
-                {/* Close button */}
-                <button
-                  style={{ marginLeft: "0" }}
-                  className="button-save"
-                  onClick={() => setRentPopup(null)}
-                >
-                  <span class="dashicons dashicons-exit"></span>
-                </button>
-              </div>
-
-            </div>
-          </div>
-        )
-      }
+      {/* Rent summary popup */}
+      {rentPopup && (
+        <RentPopup
+          rentPopup={rentPopup}
+          setRentPopup={setRentPopup}
+          rentToCopy={rentToCopy}
+          createGoogleCalendarEvent={createGoogleCalendarEvent}
+          calendarButtonText={calendarButtonText}
+          handleSendToKeep={handleSendToKeep}
+        />
+      )}
 
     </div >
 
@@ -1162,7 +1127,3 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 }
 
 export default Rents
-
-
-
-

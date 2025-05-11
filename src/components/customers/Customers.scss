@@ -27,53 +27,71 @@ $wordpress-blue-light: lab(54.89% -7.52 -42.17);
 
 
   // Styles για Grid
-  .customers-grid-wrapper {
-    overflow-x: auto;
+
+  .grid-wrapper {
     width: 100%;
+    overflow-x: auto;
+    border: 2px solid #0073a8;
+    /* εξωτερικό περίγραμμα */
+    margin-bottom: 2rem;
   }
 
-  .customers-grid,
-  .expanded-rents-grid {
+  .customers-grid {
     display: grid;
-    grid-template-columns: 2fr 1.2fr 2fr 1fr 1.5fr;
+    grid-template-columns:
+      minmax(200px, 2fr)
+      /* Όνομα */
+      minmax(150px, 1fr)
+      /* Επικοινωνία */
+      minmax(200px, 1fr)
+      /* Σχόλια */
+      minmax(80px, auto)
+      /* Εκκρεμεί */
+      min-content;
+    /* Actions */
+    gap: 0px;
     align-items: center;
+  }
+
+  .rents-grid {
+    display: grid;
+    grid-template-columns:
+      50px
+      /* Εικονίδιο */
+      2fr
+      /* Εξοπλισμός */
+      1fr
+      /* Έναρξη */
+      1fr
+      /* Λήξη */
+      1fr
+      /* Επιστροφή */
+      1fr
+      /* Πληρωμή */
+      2fr
+      /* Σχόλια */
+    ;
+    gap: 0px;
+    align-items: center;
+  }
+
+  .grid-cell {
+    padding: 8px;
+    border: 1px solid #0073a8;
+    white-space: pre-wrap;
+    text-align: center;
+  }
+
+  .grid-cell.left {
+    text-align: left;
+  }
+
+  .action-buttons {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 0.5rem;
-    min-width: 768px;
-    /* Για να υπάρχει horizontal scroll αν μικρύνει */
   }
-
-  .customers-grid-header {
-    font-weight: bold;
-    background-color: #f0f0f0;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-
-  .expanded-container {
-    padding: 1rem;
-  }
-
-  .expanded-rents-header {
-    font-weight: bold;
-    background-color: #e0e0e0;
-  }
-
-  .expanded-rents-grid {
-    grid-template-columns: 0.5fr 2fr 1fr 1fr 1fr 1fr 2fr;
-    padding: 0.5rem 0;
-  }
-
-  /* Optional: Highlight στην pending-row */
-  .pending-row {
-    background-color: #fff6e5;
-  }
-
-
-
-
-
 
   // Styles για <table>
 
@@ -331,66 +349,66 @@ $wordpress-blue-light: lab(54.89% -7.52 -42.17);
 
     text-align: center;
 
-    button {
-      // display: flex;
-      align-items: center;
-      // gap: 5px; // Απόσταση μεταξύ εικονιδίου & κειμένου
-      font-size: 14px;
-      padding: 6px 12px;
-      margin-right: 5px;
-      border: none !important;
-      cursor: pointer;
-      color: white !important;
-      transition: background-color 0.5s ease;
+  }
+
+  button {
+    // display: flex;
+    align-items: center;
+    // gap: 5px; // Απόσταση μεταξύ εικονιδίου & κειμένου
+    font-size: 14px;
+    padding: 6px 12px;
+    margin-right: 5px;
+    border: none !important;
+    cursor: pointer;
+    color: white !important;
+    transition: background-color 0.5s ease;
+
+    &:hover {
+      background-color: hsl(59, 95%, 59%);
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    // Edit button
+    &.button-edit,
+    &.button-add {
+      background-color: colors.$button-edit-background-color;
 
       &:hover {
-        background-color: hsl(59, 95%, 59%);
-      }
-
-      &:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-      }
-
-      // Edit button
-      &.button-edit,
-      &.button-add {
-        background-color: colors.$button-edit-background-color;
-
-        &:hover {
-          background-color: colors.$button-edit-hover-background-color
-        }
-      }
-
-      // Save button
-      &.button-save {
-        background-color: colors.$button-save-background-color;
-
-        &:hover {
-          background-color: colors.$button-save-hover-background-color;
-        }
-      }
-
-      //Cancel button
-      &.button-cancel {
-        background-color: colors.$button-cancel-background-color;
-
-        &:hover {
-          background-color: colors.$button-cancel-hover-background-color;
-        }
-      }
-
-      //Delete button
-      &.button-delete {
-        background-color: colors.$button-delete-background-color !important;
-        color: white;
-
-        &:hover {
-          background-color: colors.$button-delete-hover-background-color !important;
-        }
+        background-color: colors.$button-edit-hover-background-color
       }
     }
 
+    // Save button
+    &.button-save {
+      background-color: colors.$button-save-background-color;
+
+      &:hover {
+        background-color: colors.$button-save-hover-background-color;
+      }
+    }
+
+    //Cancel button
+    &.button-cancel {
+      background-color: colors.$button-cancel-background-color;
+
+      &:hover {
+        background-color: colors.$button-cancel-hover-background-color;
+      }
+    }
+
+    //Delete button
+    &.button-delete {
+      background-color: colors.$button-delete-background-color !important;
+      color: white;
+
+      &:hover {
+        background-color: colors.$button-delete-hover-background-color !important;
+      }
+    }
   }
 
 }
