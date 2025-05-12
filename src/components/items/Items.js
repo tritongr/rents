@@ -319,8 +319,8 @@ function Items({ items, setItems, nullItem, API }) {
     const now = new Date()
     // const timestamp = (now.toISOString().slice(0, 19).replace(/T/, '_').replace(/:/g, '-'))
     const timestamp = now.toLocaleString('el-GR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
-    const fullTitle = `ΕΞΟΠΛΙΣΜΟΣ στις ${timestamp}`;
-    const filename = `Rents_Items_${timestamp}.pdf`
+    const fullTitle = `ΕΞΟΠΛΙΣΜΟΣ ${pdfFilterTitle()} στις ${timestamp}`;
+    const filename = `Rents_Εξοπλισμός_${pdfFilterTitle()}_${timestamp}.pdf`
 
     // Ενημερώνουμε το κείμενο του τίτλου και το εμφανίζουμε προσωρινά
     titleElement.textContent = fullTitle;
@@ -332,7 +332,7 @@ function Items({ items, setItems, nullItem, API }) {
       filename, //`Rents_${timestamp.replace(/[\/: ]/g, '-')}.pdf`, // Χρησιμοποιούμε το timestamp στο filename
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     }
 
     // Δημιουργία του PDF
@@ -350,6 +350,20 @@ function Items({ items, setItems, nullItem, API }) {
       lastColumnCells.forEach(cell => cell.style.display = '');
 
     })
+  }
+
+  // PDF Title 
+  function pdfFilterTitle() {
+    var title = ""
+
+    if (showAvailableOnly) {
+      title = title + "διαθέσιμος"
+    }
+    if (showRentedOnly) {
+      title = title + "νοικιασμένος"
+    }
+
+    return title
   }
 
   /**
@@ -444,7 +458,7 @@ function Items({ items, setItems, nullItem, API }) {
       {
         isCollapsiblePanelOpen && (
           <div className="pdf-container">
-            <h3 ref={titleRef} style={{ display: 'none', textAlign: 'center', marginBottom: '10px' }}>ΕΞΟΠΛΙΣΜΟΣ</h3>
+            <h4 ref={titleRef} style={{ display: 'none', textAlign: 'center', marginBottom: '10px' }}>ΕΞΟΠΛΙΣΜΟΣ</h4>
             <table className="" ref={tableRef}>
 
               {/* Table header */}

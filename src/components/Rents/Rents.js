@@ -648,8 +648,8 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
     const now = new Date()
     // const timestamp = (now.toISOString().slice(0, 19).replace(/T/, '_').replace(/:/g, '-'))
     const timestamp = now.toLocaleString('el-GR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
-    const fullTitle = `ΕΝΟΙΚΙΑΣΕΙΣ στις ${timestamp}`;
-    const filename = `Rents_${timestamp}.pdf`
+    const fullTitle = `ΕΝΟΙΚΙΑΣΕΙΣ ${pdfFilterTitle()} στις ${timestamp}`;
+    const filename = `Rents_Ενοικιάσεις_${pdfFilterTitle()}_${timestamp}.pdf`
 
     // Ενημερώνουμε το κείμενο του τίτλου και το εμφανίζουμε προσωρινά
     titleElement.textContent = fullTitle;
@@ -686,6 +686,38 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
         fullSpan.style.display = originalStates[index].fullDisplay
       })
     })
+  }
+
+  // PDF Title 
+  function pdfFilterTitle() {
+    var title = ""
+
+    if (showInProgress) {
+      title = title + "σε εξέλιξη"
+    }
+    if (showToGetPaid) {
+      title = title + "για είσπραξη"
+    }
+    if (showNotCompleted) {
+      title = title + "μη ολοκληρωμένες"
+    }
+    if (showFutured) {
+      title = title + "μελλοντικές"
+    }
+    if (showToCollect) {
+      title = title + "για παραλαβή"
+    }
+    if (showUnreturned) {
+      title = title + "που δεν επεστράφησαν"
+    }
+    if (showUnpaid) {
+      title = title + "ανεξόφλητες"
+    }
+    if (showCompleted) {
+      title = title + "ολοκληρωμένες"
+    }
+
+    return title
   }
 
   /**
@@ -890,7 +922,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       {
         isCollapsiblePanelOpen && (
           <div className="pdf-container">
-            <h3 ref={titleRef} style={{ display: 'none', textAlign: 'center', marginBottom: '10px' }}>ΕΝΟΙΚΙΑΣΕΙΣ</h3>
+            <h4 ref={titleRef} style={{ display: 'none', textAlign: 'center', marginBottom: '10px' }}>ΕΝΟΙΚΙΑΣΕΙΣ</h4>
             <table id="rents-table" ref={tableRef}>
 
               {/* Table header */}
