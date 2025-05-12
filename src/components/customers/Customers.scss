@@ -25,6 +25,46 @@ $wordpress-blue-light: lab(54.89% -7.52 -42.17);
     height: 1px;
   }
 
+  // Hide on mobiles
+  @media (max-width: 768px) {
+    .hide-on-mobile {
+      display: none;
+    }
+  }
+
+  #customers-top-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 0.3rem;
+    padding: 6px 0 6px 0;
+    width: 100%;
+    font-size: small;
+  }
+
+  // New button + download pdf
+  #customers-new-button {
+    flex: 0 0 auto;
+  }
+
+  // Τα checkboxes
+  #customers-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    flex: 1 1 60%;
+    min-width: 250px;
+    text-align: center;
+  }
+
+  // Search box
+  #customers-search-bar {
+    flex: 1 1 auto;
+    position: relative;
+  }
 
   // Styles για Grid
 
@@ -262,40 +302,17 @@ $wordpress-blue-light: lab(54.89% -7.52 -42.17);
     background-color: hsla(27, 84%, 65%, 0.342);
   }
 
-  // Search & filtering
-  // ==================
+  // Search input box
   .search-bar {
-    width: calc(100% - 100px); // Να υπάρχει χώρος για το κουμπί
-    padding: 8px;
-    padding-right: 30px; // Αφήνουμε χώρο δεξιά για το κουμπί
-    margin-bottom: 10px;
+    padding: 6px 10px;
+    font-size: 14px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    font-size: 14px;
-  }
-
-  .button-clear {
-    position: relative;
-    left: -55px;
-    top: 3px;
-    background: transparent;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    color: #888;
-
-    margin-right: 7px;
-
-    &:hover {
-      color: #333;
-      background-color: hsla(0, 0%, 100%, 0);
-    }
-
   }
 
   .button-clear-inside {
     position: absolute;
-    right: 8px;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
     border: none;
@@ -303,6 +320,11 @@ $wordpress-blue-light: lab(54.89% -7.52 -42.17);
     font-size: 1rem;
     cursor: pointer;
     color: #999;
+
+    &:hover {
+      background: red;
+      color: #fff !important;
+    }
   }
 
   .button-clear-inside:hover {

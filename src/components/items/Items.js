@@ -346,7 +346,7 @@ function Items({ items, setItems, nullItem, API }) {
       // Επαναφορά της τελευταίας στήλης
       // lastColumnHeaders.forEach(header => header.classList.remove('hide-on-pdf'));
       // lastColumnCells.forEach(cell => cell.classList.remove('hide-on-pdf'));
-      lastColumnHeaders.forEach(header => header.style.display = ''); // ή την προηγούμενη τιμή αν την είχες αποθηκεύσει
+      lastColumnHeaders.forEach(header => header.style.display = '');
       lastColumnCells.forEach(cell => cell.style.display = '');
 
     })
@@ -367,42 +367,33 @@ function Items({ items, setItems, nullItem, API }) {
         />
       </div>
 
-
       {/* Wrapper of add new, checkboxes, searcj  */}
       {isCollapsiblePanelOpen && (
         <div
-          style={{
-            id: "rent-top-section",
-            padding: "6px 0 6px 0",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-            gap: "10px", // προαιρετικό για απόσταση ανάμεσα
-            fontSize: "small"
-          }}
+          id="items-top-section"
         >
 
           {/* Add New  + PDF buttons */}
-          <button
-            title="Νέο είδος"
-            onClick={onAddClick}
-            className="button-add-new"
-            style={{ flex: "0 0 auto", margin: "0" }}
-          >
-            <span class="dashicons dashicons-plus-alt2"></span>
-          </button>
+          <div id="items-new-button">
+            <button
+              title="Νέο είδος"
+              onClick={onAddClick}
+              className="button-add-new"
+            >
+              <span style={{ verticalAlign: "middle" }} class="dashicons dashicons-plus-alt2"></span>
+            </button>
 
-          <button
-            title="Download PDF"
-            onClick={handleDownloadPdf}
-            className="button-delete hide-on-mobile"
-          >
-            <span class="dashicons dashicons-download"></span>
-          </button>
+            <button
+              title="Download PDF"
+              onClick={handleDownloadPdf}
+              className="button-delete hide-on-mobile"
+            >
+              <span class="dashicons dashicons-download"></span>
+            </button>
+          </div>
 
           {/* Checkboxes  */}
-          <div style={{ flex: "1", display: "flex", justifyContent: "center" }}>
+          <div id="items-checkboxes" style={{ display: "flex", justifyContent: "center" }}>
 
             {/* Toggle showAvailable filter */}
             <div >
@@ -430,14 +421,14 @@ function Items({ items, setItems, nullItem, API }) {
           </div>
 
           {/* Search */}
-          <div style={{ flex: "0 0 auto", flexBasis: "250px" }}>
+          <div id="items-search-bar" >
             <input
               type="text"
               placeholder="🔍 Αναζήτηση εξοπλισμού..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               className="search-bar"
-              style={{ width: "100%", paddingRight: "2em", margin: "0" }} // extra padding right για το κουμπί
+              style={{ width: "100%", paddingRight: "2em", border: "solid 1px red" }}
             />
             {searchText && (
               <button className="button-clear-inside" onClick={() => setSearchText("")}>

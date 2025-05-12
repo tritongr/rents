@@ -88,11 +88,11 @@ $wordpress-blue-light: #008bcc;
   }
 
   /**
- * Top section 
- */
+   * Top section 
+   */
 
   // Wrapper των add new button, checkboxes, search box
-  #rent-top-section {
+  #rents-top-section {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -104,8 +104,8 @@ $wordpress-blue-light: #008bcc;
     font-size: small;
   }
 
-  // New button
-  #rent-new-button {
+  // New button + download pdf
+  #rents-new-button {
     flex: 0 0 auto;
   }
 
@@ -119,10 +119,37 @@ $wordpress-blue-light: #008bcc;
   // Search box
   #rent-search-bar {
     flex: 0 0 auto;
+    position: relative;
+  }
+
+  // Search & filtering
+  // ==================
+  .search-bar {
+    padding: 6px 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  .button-clear-inside {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #999;
+
+    &:hover {
+      background: red;
+      color: #fff !important;
+    }
   }
 
   @media (max-width: 768px) {
-    #rent-new-button {
+    #rents-new-button {
       flex-basis: 5%;
       order: 0;
     }
@@ -318,62 +345,6 @@ $wordpress-blue-light: #008bcc;
   .active-row {
     background-color: hsl(120, 100%, 92%); // Απαλό μπλε (WordPress style)
     // font-weight: bold; // Κάνει το κείμενο πιο εμφανές
-  }
-
-  // Search & filtering
-  // ==================
-  .search-bar {
-    padding: 6px 10px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-
-  .button-clear-inside {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    border: none;
-    background: transparent;
-    font-size: 1rem;
-    cursor: pointer;
-    color: #999;
-  }
-
-  .search-bar_old {
-    width: calc(100% - 100px); // Να υπάρχει χώρος για το κουμπί
-    padding: 8px;
-    padding-right: 30px; // Αφήνουμε χώρο δεξιά για το κουμπί
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-
-
-
-  .button-clear-inside:hover {
-    color: #333;
-  }
-
-  .button-clear {
-    position: relative;
-    left: -55px;
-    top: 3px;
-    background: transparent;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    color: #888;
-
-    margin-right: 7px;
-
-    &:hover {
-      color: #333;
-      background-color: hsla(0, 0%, 100%, 0);
-    }
-
   }
 
   .active-filter {

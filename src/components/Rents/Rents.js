@@ -177,6 +177,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
       toast.success('Η ενοικίαση προστέθηκε!')
 
       copyToClipboard(rentToCopy(newRent))
+      setRentPopup(newRent)
       createGoogleCalendarEvent(newRent)
 
       setEditingRent(nullRent)
@@ -199,7 +200,6 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
   /** 
    * Edit rent
   */
-
   // Edit button clicked
   function onEditClick(rent) {
     setEditingRent(rent)
@@ -706,14 +706,10 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
       {/* Wrapper div για add new button, checkboxes, search */}
       {isCollapsiblePanelOpen && (
-        <div
-          id="rent-top-section"
-        >
+        <div id="rents-top-section">
 
           {/* New record + PDF buttons div */}
-          <div
-            id="rent-new-button"
-          >
+          <div id="rents-new-button">
             <button
               title="Νέα ενοικίαση"
               onClick={onAddClick}
@@ -863,6 +859,7 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
 
           </div>
 
+          {/* Search */}
           <div
             id="rent-search-bar"
           >
@@ -872,12 +869,12 @@ function Rents({ rents, setRents, nullRent, items, customers, API }) {
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               className="search-bar"
-              style={{ width: "100%", paddingRight: "2em" }} // extra padding right για το κουμπί
+              style={{ width: "100%", paddingRight: "2em", border: "solid 1px red" }} // extra padding right για το κουμπί
             />
 
             {searchText && (
               <button
-                className="button-clear-inside hide-on-mobile"
+                className="button-clear-inside"
                 onClick={() => setSearchText("")}
                 title="Καθαρισμός"
               >

@@ -410,7 +410,7 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
       // Επαναφορά της τελευταίας στήλης
       // lastColumnHeaders.forEach(header => header.classList.remove('hide-on-pdf'));
       // lastColumnCells.forEach(cell => cell.classList.remove('hide-on-pdf'));
-      lastColumnHeaders.forEach(header => header.style.display = ''); // ή την προηγούμενη τιμή αν την είχες αποθηκεύσει
+      lastColumnHeaders.forEach(header => header.style.display = '');
       lastColumnCells.forEach(cell => cell.style.display = '');
 
     })
@@ -432,27 +432,17 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
       </div>
 
       {isCollapsiblePanelOpen && (
-        <div
-          id="customers-top-section"
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-            fontSize: "small",
-            gap: "10px", // προαιρετικό για απόσταση ανάμεσα
-          }}
-        >
-          {/* Buttons */}
-          <div id="rent-new-button" style={{ flex: "0 0 auto" }}>
+        <div id="customers-top-section">
+
+          {/* Add New  + PDF + Expand buttons */}
+          <div id="customers-new-button">
             {/* Add New + PDF buttons */}
             <button
               title="Νέος πελάτης"
               onClick={onAddClick}
               className="button-add-new"
-              style={{ margin: "5px 5px 5px 0" }}
             >
-              <span style={{ marginTop: "2px" }} class="dashicons dashicons-plus-alt2"></span>
+              <span class="dashicons dashicons-plus-alt2"></span>
             </button>
 
             <button
@@ -483,47 +473,53 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
           </div>
 
           {/* Checkboxes */}
-          <div id="rent-checkboxes" style={{ flex: "1 1 auto", textAlign: "center" }}>
-            {/* is_pending */}
-            <label style={{ marginRight: '1em' }} >
-              <input
-                type="checkbox"
-                checked={showPendingOnly}
-                onChange={() => { setShowPendingOnly(!showPendingOnly); setShowNoPaidOnly(false); setShowNoRetOnly(false); }}
-              />
-              {' '}Εκκρεμείς
-            </label>
+          <div id="customers-checkboxes" >
 
-            {/* no_returned */}
-            <label style={{ marginRight: '1em' }}>
-              <input
-                type="checkbox"
-                checked={showNoRetOnly}
-                onChange={() => { setShowNoRetOnly(!showNoRetOnly); setShowNoPaidOnly(false); setShowPendingOnly(false) }}
-              />
-              {' '}Δεν επέστρεψαν
-            </label>
+            {/* Container για is_pending και no_returned */}
+            <div>
+              {/* is_pending */}
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showPendingOnly}
+                  onChange={() => { setShowPendingOnly(!showPendingOnly); setShowNoPaidOnly(false); setShowNoRetOnly(false); }}
+                />
+                &nbsp;Εκκρεμείς&nbsp;&nbsp;
+              </label>
+
+              {/* no_returned */}
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showNoRetOnly}
+                  onChange={() => { setShowNoRetOnly(!showNoRetOnly); setShowNoPaidOnly(false); setShowPendingOnly(false) }}
+                />
+                &nbsp;Δεν επέστρεψαν&nbsp;&nbsp;
+              </label>
+            </div>
 
             {/* no_paid */}
-            <label style={{ marginRight: '1em' }}>
-              <input
-                type="checkbox"
-                checked={showNoPaidOnly}
-                onChange={() => { setShowNoPaidOnly(!showNoPaidOnly); setShowNoRetOnly(false); setShowPendingOnly(false) }}
-              />
-              {' '}Δεν πλήρωσαν
-            </label>
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showNoPaidOnly}
+                  onChange={() => { setShowNoPaidOnly(!showNoPaidOnly); setShowNoRetOnly(false); setShowPendingOnly(false) }}
+                />
+                &nbsp;Δεν πλήρωσαν
+              </label>
+            </div>
           </div>
 
           {/* Search */}
-          <div id="rent-search-bar" style={{ flex: "0 0 auto", flexBasis: "250px" }}>
+          <div id="customers-search-bar">
             <input
               type="text"
               placeholder="🔍 Αναζήτηση πελάτη..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               className="search-bar"
-              style={{ width: "100%", paddingRight: "2em", margin: "0" }} // extra padding right για το κουμπί
+              style={{ width: "100%", paddingRight: "2em", margin: "0", border: "solid 1px red" }}
             />
             {searchText && (
               <button className="button-clear-inside" onClick={() => setSearchText("")}>
@@ -534,14 +530,12 @@ function Customers({ rents, items, customers, setCustomers, nullCustomer, API })
         </div>
       )}
 
-
       {/* Ο Πίνακας */}
       {
         isCollapsiblePanelOpen && (
           <div className="pdf-container">
             <h3 ref={titleRef} style={{ display: 'none', textAlign: 'center', marginBottom: '10px' }}>ΠΕΛΑΤΕΣ</h3>
-            <table className="" ref={tableRef}></table>
-            <table ref={tableRef}>
+            <table className="" ref={tableRef}>
 
               {/* Table header */}
               <thead className="">

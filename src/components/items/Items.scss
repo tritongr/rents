@@ -17,9 +17,51 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch; // για smooth scrolling σε iOS
 
+  // Hide on mobiles
+  @media (max-width: 768px) {
+    .hide-on-mobile {
+      display: none;
+    }
+  }
+
+  /**
+   * Top section 
+   */
+
+  // Wrapper των add new button, checkboxes, search box
+  #items-top-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 0.3rem;
+    padding: 6px 0 6px 0;
+    width: 100%;
+    font-size: small;
+  }
+
+  // New button + download pdf
+  #items-new-button {
+    flex: 0 0 auto;
+  }
+
+  // Τα checkboxes
+  #items-checkboxes {
+    flex: 1 1 auto;
+    min-width: 250px;
+    text-align: center;
+  }
+
+  // Search box
+  #items-search-bar {
+    flex: 1 1 auto;
+    position: relative;
+  }
+
   .button-clear-inside {
     position: absolute;
-    right: 8px;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
     border: none;
@@ -27,11 +69,21 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
     font-size: 1rem;
     cursor: pointer;
     color: #999;
+
+    &:hover {
+      background: red;
+      color: #fff !important;
+    }
   }
 
-  .button-clear-inside:hover {
-    color: #333;
+  // Search input box
+  .search-bar {
+    padding: 6px 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
   }
+
 
   // Grid version
   .table-wrapper {
@@ -124,9 +176,6 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
       width: auto;
     }
 
-
-
-
     /* Κρύβουμε πεςριττές στήλες στα κινητά */
     // @media (max-width: 600px) {
 
@@ -147,7 +196,6 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    margin-bottom: 10px;
 
     &:hover {
       background: $wordpress-blue-light;
@@ -160,36 +208,6 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
     // font-weight: bold; // Κάνει το κείμενο πιο εμφανές
   }
 
-  // Search & filtering
-  // ==================
-  .search-bar {
-    width: calc(100% - 100px); // Να υπάρχει χώρος για το κουμπί
-    padding: 8px;
-    padding-right: 30px; // Αφήνουμε χώρο δεξιά για το κουμπί
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-
-  .button-clear {
-    position: relative;
-    left: -55px;
-    top: 3px;
-    background: transparent;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    color: #888;
-
-    margin-right: 7px;
-
-    &:hover {
-      color: #333;
-      background-color: hsla(0, 0%, 100%, 0);
-    }
-
-  }
 
   .active-filter {
     display: flex;
@@ -230,9 +248,6 @@ $wordpress-blue-light: hsl(199, 100%, 40%);
   #action-buttons {
 
     text-align: center;
-
-
-
   }
 
   button {
